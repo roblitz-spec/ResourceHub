@@ -314,6 +314,50 @@ class TestInsertRule:
         assert items[0].preview_name == "01_A_"
         assert items[1].preview_name == "02_B_"
 
+    def test_insert_at_len_clamped(self) -> None:
+        """at_index > len → 自动追加到末尾。"""
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="insert", parameters={"text": "Z", "at_index": "999"}),
+        ])
+        assert RuleEngine.apply(_file_item("ab"), rule) == "abZ"
+
+    def test_insert_neg2_also_clamped(self) -> None:
+        """at_index = -2 也 clamp 到末尾。"""
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="insert", parameters={"text": "Z", "at_index": "-2"}),
+        ])
+        assert RuleEngine.apply(_file_item("ab"), rule) == "abZ"
+
+    def test_insert_save_load(self) -> None:
+        """Insert Rule 保存/加载 text + at_index 恢复。"""
+        import tempfile
+        from pathlib import Path
+        from storage.repository import RuleRepository
+
+        with tempfile.TemporaryDirectory() as td:
+            p = Path(td) / "rules.json"
+            repo = RuleRepository(p); repo.load()
+            repo.add(Rule(id="r1", name="插入", steps=[
+                RuleStep(type="insert", parameters={"text": "_v2", "at_index": "5"}),
+            ]))
+            repo.save()
+            repo2 = RuleRepository(p); repo2.load()
+            r = repo2.find("r1")
+            assert r.steps[0].parameters["text"] == "_v2"
+            assert r.steps[0].parameters["at_index"] == "5"
+
+    def test_insert_preview_rename_consistency(self) -> None:
+        """Insert: Preview → RenamePlan → target_name 一致。"""
+        item = _file_item("file", ".txt")
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="insert", parameters={"text": "_v2", "at_index": "4"}),
+        ])
+        PreviewEngine.generate_preview([item], rule)
+        assert item.preview_name == "file_v2"
+        plans = RenamePlanEngine.generate([item])
+        assert plans[0].target_name == "file_v2.txt"
+        assert plans[0].needs_rename
+
 
     def test_preview_rename_plan_consistency(self) -> None:
         """Preview → RenamePlan 的 target_name 一致。"""
