@@ -359,6 +359,115 @@ class TestInsertRule:
         assert plans[0].needs_rename
 
 
+class TestDateRule:
+    """Date RuleStep 测试。"""
+
+    TS = 1720134000.0  # 2024-07-04T23:00:00 UTC
+
+    def _ctx(self, source="modified"):
+        return {"timestamps": {source: self.TS}}
+
+    def test_default_prefix(self) -> None:
+        rule = Rule(id="r", name="r", steps=[RuleStep(type="date", parameters={})])
+        result = RuleEngine.apply(_file_item("photo"), rule, self._ctx())
+        assert result.startswith("2024-07-04_photo")
+
+    def test_suffix(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="date", parameters={"position": "suffix"}),
+        ])
+        result = RuleEngine.apply(_file_item("photo"), rule, self._ctx())
+        assert result.endswith("_2024-07-04")
+
+    def test_custom_format(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="date", parameters={"format": "%Y%m%d_%H%M"}),
+        ])
+        result = RuleEngine.apply(_file_item("photo"), rule, self._ctx())
+        assert result.startswith("20240704")
+
+    def test_custom_separator(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="date", parameters={"separator": "-"}),
+        ])
+        result = RuleEngine.apply(_file_item("photo"), rule, self._ctx())
+        assert result.startswith("2024-07-04-photo")
+
+    def test_empty_separator(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="date", parameters={"separator": ""}),
+        ])
+        result = RuleEngine.apply(_file_item("photo"), rule, self._ctx())
+        assert result.startswith("2024-07-04photo")
+
+    def test_modified_source(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="date", parameters={"source": "modified"}),
+        ])
+        result = RuleEngine.apply(_file_item("f"), rule, self._ctx("modified"))
+        assert "2024-07-04" in result
+
+    def test_unknown_source_returns_original(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="date", parameters={"source": "exif"}),
+        ])
+        result = RuleEngine.apply(_file_item("photo"), rule, self._ctx())
+        assert result == "photo"  # exif not found → original
+
+    def test_missing_context_returns_original(self) -> None:
+        rule = Rule(id="r", name="r", steps=[RuleStep(type="date", parameters={})])
+        result = RuleEngine.apply(_file_item("photo"), rule)
+        assert result == "photo"  # no context → original
+
+    def test_date_then_prefix(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="date", parameters={"separator": ""}),
+            RuleStep(type="add_prefix", parameters={"text": "[OK]"}),
+        ])
+        result = RuleEngine.apply(_file_item("f"), rule, self._ctx())
+        assert result == "[OK]2024-07-04f"
+
+    def test_prefix_then_date(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="add_prefix", parameters={"text": "[OK]"}),
+            RuleStep(type="date", parameters={"separator": ""}),
+        ])
+        result = RuleEngine.apply(_file_item("f"), rule, self._ctx())
+        assert result == "2024-07-04[OK]f"
+
+    def test_date_then_number(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="date", parameters={"separator": ""}),
+            RuleStep(type="number", parameters={"padding": "2"}),
+        ])
+        result = RuleEngine.apply(_file_item("f"), rule, {**self._ctx(), "index": 1})
+        assert result == "01_2024-07-04f"
+
+    def test_number_then_date(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="number", parameters={"padding": "2"}),
+            RuleStep(type="date", parameters={"separator": ""}),
+        ])
+        result = RuleEngine.apply(_file_item("f"), rule, {**self._ctx(), "index": 1})
+        assert result == "2024-07-0401_f"
+
+    def test_preview_consistency(self) -> None:
+        """Date Rule: Preview ↔ RenamePlan 一致。"""
+        import os as _os
+        import tempfile, shutil
+        from pathlib import Path
+        d = Path(tempfile.mkdtemp())
+        p = d / "photo.txt"; p.write_text("x")
+        _os.utime(p, (self.TS, self.TS))
+        item = FileItem(full_path=p, original_name="photo.txt", base_name="photo", extension=".txt", item_type=ItemType.FILE)
+        rule = Rule(id="r", name="r", steps=[RuleStep(type="date", parameters={})])
+        PreviewEngine.generate_preview([item], rule)
+        assert "2024-07-04" in item.preview_name
+        plans = RenamePlanEngine.generate([item])
+        assert "2024-07-04" in plans[0].target_name
+        shutil.rmtree(d)
+
+
     def test_preview_rename_plan_consistency(self) -> None:
         """Preview → RenamePlan 的 target_name 一致。"""
         item = _file_item("file", ".txt")

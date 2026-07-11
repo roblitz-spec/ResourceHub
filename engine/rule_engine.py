@@ -50,6 +50,27 @@ def _handle_trim(text: str, params: dict[str, object], _ctx: dict | None = None)
     return text.strip()
 
 
+def _handle_date(text: str, params: dict[str, object], ctx: dict | None = None) -> str:
+    from datetime import datetime
+
+    source = str(params.get("source", "modified"))
+    fmt = str(params.get("format", "%Y-%m-%d"))
+    pos = str(params.get("position", "prefix"))
+    sep = str(params.get("separator", "_"))
+
+    ts = None
+    if ctx and "timestamps" in ctx:
+        ts = ctx["timestamps"].get(source)
+
+    if ts is None:
+        return text  # 纯函数：无时间戳 → 返回原名
+
+    date_str = datetime.fromtimestamp(ts).strftime(fmt)
+    if pos == "suffix":
+        return f"{text}{sep}{date_str}"
+    return f"{date_str}{sep}{text}"
+
+
 def _handle_insert(text: str, params: dict[str, object], _ctx: dict | None = None) -> str:
     insert_text = str(params.get("text", ""))
     at_idx = int(str(params.get("at_index", "0")))
@@ -82,6 +103,7 @@ _HANDLERS: dict[str, object] = {
     "trim": _handle_trim,
     "number": _handle_number,
     "insert": _handle_insert,
+    "date": _handle_date,
 }
 
 

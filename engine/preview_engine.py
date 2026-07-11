@@ -14,7 +14,15 @@ class PreviewEngine:
         total = len(items)
         for i, item in enumerate(items):
             if item.item_type == ItemType.FILE:
-                ctx = {"index": i + 1, "count": total}
+                ctx: dict = {"index": i + 1, "count": total}
+                try:
+                    st = item.full_path.stat()
+                    ctx["timestamps"] = {
+                        "modified": st.st_mtime,
+                        "created": st.st_ctime,
+                    }
+                except OSError:
+                    pass
                 item.preview_name = RuleEngine.apply(item, rule, ctx)
             else:
                 item.preview_name = None

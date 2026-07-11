@@ -36,6 +36,7 @@ _STEP_TYPES: list[tuple[str, str, str, str]] = [
     ("case",          "大小写转换", "文本处理", "🔠"),
     ("number",        "编号",       "文本处理", "🔢"),
     ("insert",        "插入文本",   "文本处理", "📝"),
+    ("date",          "日期",       "文本处理", "📅"),
     ("add_prefix",    "添加前缀",   "添加",    "➕"),
 ]
 
@@ -48,6 +49,7 @@ _STEP_DEFAULTS: dict[str, dict[str, object]] = {
     "trim":          {"mode": "both"},
     "number":        {"start": "1", "step": "1", "padding": "3", "position": "prefix"},
     "insert":        {"text": "", "at_index": "0"},
+    "date":          {"source": "modified", "format": "%Y-%m-%d", "position": "prefix", "separator": "_"},
 }
 
 
@@ -194,6 +196,17 @@ class RuleManagerDialog(QDialog):
         _.addRow("插入位置：", self._ins_idx)
         self._param_stack.addWidget(pg)
 
+        # 9: date
+        pg, _ = _make_page()
+        self._date_src = QComboBox(); self._date_src.addItems(["修改时间"]); self._date_src.setItemData(0, "modified")
+        self._date_fmt = QLineEdit(); self._date_fmt.setText("%Y-%m-%d"); self._date_fmt.setPlaceholderText("例如 %Y-%m-%d")
+        self._date_sep = QLineEdit(); self._date_sep.setText("_"); self._date_sep.setPlaceholderText("分隔符，可留空")
+        self._date_pos = QComboBox(); self._date_pos.addItems(["前缀", "后缀"])
+        self._date_pos.setItemData(0, "prefix"); self._date_pos.setItemData(1, "suffix")
+        _.addRow("时间来源：", self._date_src); _.addRow("格式：", self._date_fmt)
+        _.addRow("分隔符：", self._date_sep); _.addRow("位置：", self._date_pos)
+        self._param_stack.addWidget(pg)
+
         right.addWidget(self._param_stack)
 
         # 信号连接
@@ -208,6 +221,10 @@ class RuleManagerDialog(QDialog):
         self._num_pos.currentIndexChanged.connect(lambda: self._on_param_changed())
         self._ins_text.textChanged.connect(self._on_param_changed)
         self._ins_idx.valueChanged.connect(lambda: self._on_param_changed())
+        self._date_fmt.textChanged.connect(self._on_param_changed)
+        self._date_sep.textChanged.connect(self._on_param_changed)
+        self._date_src.currentIndexChanged.connect(lambda: self._on_param_changed())
+        self._date_pos.currentIndexChanged.connect(lambda: self._on_param_changed())
 
         # ── 底部按钮 ──
         btn_layout = QHBoxLayout()
@@ -303,6 +320,7 @@ class RuleManagerDialog(QDialog):
                 "trim": f"去空白  {p.get('mode', 'both')}",
                 "number": f"编号  #{p.get('start','1')}+{p.get('step','1')} pad={p.get('padding','3')}",
                 "insert": f"插入  \"{p.get('text','?')}\" @{p.get('at_index','0')}",
+                "date": f"日期  {p.get('format','?')} ({p.get('position','?')})",
             }.get(step.type, step.type)
             item = QListWidgetItem(label)
             item.setData(1, id(step))
@@ -322,7 +340,7 @@ class RuleManagerDialog(QDialog):
 
     _PAGE_INDEX: dict[str, int] = {
         "replace": 1, "remove_text": 2, "add_prefix": 3,
-        "regex_replace": 4, "case": 5, "trim": 6, "number": 7, "insert": 8,
+        "regex_replace": 4, "case": 5, "trim": 6, "number": 7, "insert": 8, "date": 9,
     }
 
     def _on_step_selected(
@@ -390,6 +408,21 @@ class RuleManagerDialog(QDialog):
             self._ins_text.setText(str(params.get("text", "")))
             self._ins_idx.setValue(int(str(params.get("at_index", "0"))))
             self._ins_text.blockSignals(False); self._ins_idx.blockSignals(False)
+        elif page == 9:  # date
+            self._date_src.blockSignals(True); self._date_fmt.blockSignals(True)
+            self._date_sep.blockSignals(True); self._date_pos.blockSignals(True)
+            target_src = str(params.get("source", "modified"))
+            for i in range(self._date_src.count()):
+                if self._date_src.itemData(i) == target_src:
+                    self._date_src.setCurrentIndex(i); break
+            self._date_fmt.setText(str(params.get("format", "%Y-%m-%d")))
+            self._date_sep.setText(str(params.get("separator", "_")))
+            target_pos = str(params.get("position", "prefix"))
+            for i in range(self._date_pos.count()):
+                if self._date_pos.itemData(i) == target_pos:
+                    self._date_pos.setCurrentIndex(i); break
+            self._date_src.blockSignals(False); self._date_fmt.blockSignals(False)
+            self._date_sep.blockSignals(False); self._date_pos.blockSignals(False)
 
         self._param_stack.setCurrentIndex(page)
 
@@ -503,6 +536,11 @@ class RuleManagerDialog(QDialog):
         elif tp == "insert":
             step.parameters["text"] = self._ins_text.text()
             step.parameters["at_index"] = str(self._ins_idx.value())
+        elif tp == "date":
+            step.parameters["source"] = self._date_src.currentData()
+            step.parameters["format"] = self._date_fmt.text()
+            step.parameters["separator"] = self._date_sep.text()
+            step.parameters["position"] = self._date_pos.currentData()
         self._notify_steps_changed()
         row = self._step_list.currentRow()
         self._refresh_step_list()
