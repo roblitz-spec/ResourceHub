@@ -11,10 +11,11 @@ class PreviewEngine:
 
     @staticmethod
     def generate_preview(items: list[FileItem], rule: Rule) -> None:
-        total = len(items)
-        for i, item in enumerate(items):
+        file_index = 0
+        for item in items:
             if item.item_type == ItemType.FILE:
-                ctx: dict = {"index": i + 1, "count": total}
+                file_index += 1
+                ctx: dict = {"index": file_index, "count": len(items)}
                 try:
                     st = item.full_path.stat()
                     ctx["timestamps"] = {

@@ -233,6 +233,36 @@ class TestNumberRule:
         assert items[1].preview_name == "002_B"
         assert items[2].preview_name == "003_C"
 
+    def test_folder_does_not_consume_index(self) -> None:
+        """文件夹不占用编号索引。"""
+        folder = FileItem(
+            full_path=Path("/fake/dir"), original_name="dir",
+            base_name="dir", extension="", item_type=ItemType.DIRECTORY,
+        )
+        items = [folder, _file_item("A", ".txt"), _file_item("B", ".txt")]
+        rule = Rule(id="r", name="r", steps=[RuleStep(type="number", parameters={})])
+        PreviewEngine.generate_preview(items, rule)
+        assert items[0].preview_name is None  # folder
+        assert items[1].preview_name == "001_A"
+        assert items[2].preview_name == "002_B"
+
+    def test_mixed_folders_and_files(self) -> None:
+        """多个文件夹 + 文件混合 → 文件编号连续。"""
+        items = [
+            FileItem(full_path=Path("/fake/d1"), original_name="d1", base_name="d1", extension="", item_type=ItemType.DIRECTORY),
+            _file_item("A", ".txt"),
+            FileItem(full_path=Path("/fake/d2"), original_name="d2", base_name="d2", extension="", item_type=ItemType.DIRECTORY),
+            _file_item("B", ".txt"),
+            _file_item("C", ".txt"),
+        ]
+        rule = Rule(id="r", name="r", steps=[RuleStep(type="number", parameters={})])
+        PreviewEngine.generate_preview(items, rule)
+        assert items[0].preview_name is None
+        assert items[1].preview_name == "001_A"
+        assert items[2].preview_name is None
+        assert items[3].preview_name == "002_B"
+        assert items[4].preview_name == "003_C"
+
     def test_step_order_number_then_prefix(self) -> None:
         """Number → Prefix 顺序：先编号再加前缀。"""
         rule = Rule(id="r", name="r", steps=[
