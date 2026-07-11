@@ -35,6 +35,7 @@ _STEP_TYPES: list[tuple[str, str, str, str]] = [
     ("trim",          "去除空白",   "文本处理", "🧹"),
     ("case",          "大小写转换", "文本处理", "🔠"),
     ("number",        "编号",       "文本处理", "🔢"),
+    ("insert",        "插入文本",   "文本处理", "📝"),
     ("add_prefix",    "添加前缀",   "添加",    "➕"),
 ]
 
@@ -46,6 +47,7 @@ _STEP_DEFAULTS: dict[str, dict[str, object]] = {
     "case":          {"mode": "upper"},
     "trim":          {"mode": "both"},
     "number":        {"start": "1", "step": "1", "padding": "3", "position": "prefix"},
+    "insert":        {"text": "", "at_index": "0"},
 }
 
 
@@ -184,6 +186,14 @@ class RuleManagerDialog(QDialog):
         _.addRow("位数：", self._num_pad); _.addRow("位置：", self._num_pos)
         self._param_stack.addWidget(pg)
 
+        # 8: insert
+        pg, _ = _make_page()
+        self._ins_text = QLineEdit(); self._ins_text.setPlaceholderText("要插入的文字")
+        self._ins_idx = QSpinBox(); self._ins_idx.setRange(-1, 999); self._ins_idx.setValue(0); self._ins_idx.setSpecialValueText("开头")
+        _.addRow("插入文字：", self._ins_text)
+        _.addRow("插入位置：", self._ins_idx)
+        self._param_stack.addWidget(pg)
+
         right.addWidget(self._param_stack)
 
         # 信号连接
@@ -196,6 +206,8 @@ class RuleManagerDialog(QDialog):
         self._num_step.valueChanged.connect(lambda: self._on_param_changed())
         self._num_pad.valueChanged.connect(lambda: self._on_param_changed())
         self._num_pos.currentIndexChanged.connect(lambda: self._on_param_changed())
+        self._ins_text.textChanged.connect(self._on_param_changed)
+        self._ins_idx.valueChanged.connect(lambda: self._on_param_changed())
 
         # ── 底部按钮 ──
         btn_layout = QHBoxLayout()
@@ -290,6 +302,7 @@ class RuleManagerDialog(QDialog):
                 "case": f"大小写  {p.get('mode', '?')}",
                 "trim": f"去空白  {p.get('mode', 'both')}",
                 "number": f"编号  #{p.get('start','1')}+{p.get('step','1')} pad={p.get('padding','3')}",
+                "insert": f"插入  \"{p.get('text','?')}\" @{p.get('at_index','0')}",
             }.get(step.type, step.type)
             item = QListWidgetItem(label)
             item.setData(1, id(step))
@@ -309,7 +322,7 @@ class RuleManagerDialog(QDialog):
 
     _PAGE_INDEX: dict[str, int] = {
         "replace": 1, "remove_text": 2, "add_prefix": 3,
-        "regex_replace": 4, "case": 5, "trim": 6, "number": 7,
+        "regex_replace": 4, "case": 5, "trim": 6, "number": 7, "insert": 8,
     }
 
     def _on_step_selected(
@@ -372,6 +385,11 @@ class RuleManagerDialog(QDialog):
                     self._num_pos.setCurrentIndex(i); break
             self._num_start.blockSignals(False); self._num_step.blockSignals(False)
             self._num_pad.blockSignals(False); self._num_pos.blockSignals(False)
+        elif page == 8:  # insert
+            self._ins_text.blockSignals(True); self._ins_idx.blockSignals(True)
+            self._ins_text.setText(str(params.get("text", "")))
+            self._ins_idx.setValue(int(str(params.get("at_index", "0"))))
+            self._ins_text.blockSignals(False); self._ins_idx.blockSignals(False)
 
         self._param_stack.setCurrentIndex(page)
 
@@ -482,6 +500,9 @@ class RuleManagerDialog(QDialog):
             step.parameters["step"] = str(self._num_step.value())
             step.parameters["padding"] = str(self._num_pad.value())
             step.parameters["position"] = self._num_pos.currentData()
+        elif tp == "insert":
+            step.parameters["text"] = self._ins_text.text()
+            step.parameters["at_index"] = str(self._ins_idx.value())
         self._notify_steps_changed()
         row = self._step_list.currentRow()
         self._refresh_step_list()

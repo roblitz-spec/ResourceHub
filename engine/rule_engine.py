@@ -50,6 +50,14 @@ def _handle_trim(text: str, params: dict[str, object], _ctx: dict | None = None)
     return text.strip()
 
 
+def _handle_insert(text: str, params: dict[str, object], _ctx: dict | None = None) -> str:
+    insert_text = str(params.get("text", ""))
+    at_idx = int(str(params.get("at_index", "0")))
+    if at_idx < 0 or at_idx > len(text):
+        at_idx = len(text)
+    return text[:at_idx] + insert_text + text[at_idx:]
+
+
 def _handle_number(text: str, params: dict[str, object], ctx: dict | None = None) -> str:
     idx = (ctx or {}).get("index", 1)
     start = int(str(params.get("start", "1")))
@@ -73,6 +81,7 @@ _HANDLERS: dict[str, object] = {
     "case": _handle_case,
     "trim": _handle_trim,
     "number": _handle_number,
+    "insert": _handle_insert,
 }
 
 

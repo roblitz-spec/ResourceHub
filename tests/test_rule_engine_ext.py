@@ -276,6 +276,45 @@ class TestNumberRule:
             assert s.parameters["padding"] == "4"
             assert s.parameters["position"] == "suffix"
 
+class TestInsertRule:
+    """Insert RuleStep 测试。"""
+
+    def test_insert_at_beginning(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="insert", parameters={"text": "X", "at_index": "0"}),
+        ])
+        assert RuleEngine.apply(_file_item("file"), rule) == "Xfile"
+
+    def test_insert_at_end(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="insert", parameters={"text": "_v2", "at_index": "-1"}),
+        ])
+        assert RuleEngine.apply(_file_item("file"), rule) == "file_v2"
+
+    def test_insert_in_middle(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="insert", parameters={"text": "MID", "at_index": "2"}),
+        ])
+        assert RuleEngine.apply(_file_item("abcdef"), rule) == "abMIDcdef"
+
+    def test_insert_no_text_no_change(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="insert", parameters={"at_index": "2"}),
+        ])
+        assert RuleEngine.apply(_file_item("abcdef"), rule) == "abcdef"
+
+    def test_insert_pipeline(self) -> None:
+        """insert + number 组合。"""
+        items = [_file_item("A", ".txt"), _file_item("B", ".txt")]
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="insert", parameters={"text": "_", "at_index": "1"}),
+            RuleStep(type="number", parameters={"padding": "2", "position": "prefix"}),
+        ])
+        PreviewEngine.generate_preview(items, rule)
+        assert items[0].preview_name == "01_A_"
+        assert items[1].preview_name == "02_B_"
+
+
     def test_preview_rename_plan_consistency(self) -> None:
         """Preview → RenamePlan 的 target_name 一致。"""
         item = _file_item("file", ".txt")
