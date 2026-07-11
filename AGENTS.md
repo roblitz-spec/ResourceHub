@@ -6,6 +6,7 @@
 |---|---|
 | `M12-complete` | Number Rule 完成，122 tests |
 | `M13-complete` | Insert Rule 完成，131 tests |
+| `M14-complete` | Date Rule 完成，144 tests |
 
 ## RuleStep 类型总览
 
@@ -18,6 +19,7 @@
 | `trim` | 去除空白 | `mode` | `"both"` |
 | `number` | 编号 | `start`, `step`, `padding`, `position` | `"1"`, `"1"`, `"3"`, `"prefix"` |
 | `insert` | 插入文本 | `text`, `at_index` | `""`, `"0"` |
+| `date` | 日期 | `source`, `format`, `position`, `separator` | `"modified"`, `"%Y-%m-%d"`, `"prefix"`, `"_"` |
 | `add_prefix` | 添加前缀 | `text` | `""` |
 
 ## Insert Rule 行为规范
@@ -28,6 +30,15 @@
 - `at_index < 0`（任意负数）→ clamp 到末尾
 - `text = ""` → 不改变原文字
 - Step 顺序严格按列表执行，Insert 不例外
+
+## Date Rule 行为规范
+
+- `source` 从 context `timestamps` 中获取时间戳
+- 当前仅实现 `modified`；`created`/`exif`/`now` 预留
+- 未知 source → 返回原名（不 fallback）
+- context 缺失 → 返回原名（纯函数，不调用 `datetime.now()`）
+- `format` 使用 Python `strftime` 格式
+- `separator = ""` → 日期与文件名直连
 
 ## Number Rule 行为规范
 
