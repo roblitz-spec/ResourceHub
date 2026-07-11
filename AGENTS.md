@@ -55,6 +55,24 @@
 - RenameEngine：仅按 `plan.action` 执行，不重复决策
 - Preview ↔ Rename 共享同一份 RenamePlan
 
+## Context Contract
+
+RuleEngine 与 PreviewEngine 之间通过 `context` 字典通信。
+
+**已冻结字段（不得修改名称或语义）**：
+
+| 字段 | 类型 | 语义 | 使用者 |
+|---|---|---|---|
+| `context["index"]` | `int` | 当前文件序号（1-based） | Number Rule |
+| `context["count"]` | `int` | 文件总数 | 预留 |
+| `context["timestamps"]["modified"]` | `float` | 文件修改时间（`st_mtime`） | Date Rule |
+| `context["timestamps"]["created"]` | `float` | 文件创建时间（`st_ctime`） | 预留 |
+
+**扩展规则**：
+- 新增字段允许（如 `timestamps["exif"]`）
+- 不得修改已冻结字段的名称、类型或语义
+- 未知字段或缺失字段 → handler 返回原名，不得崩溃
+
 ## Development Workflow
 
 每个 Milestone 统一流程：
