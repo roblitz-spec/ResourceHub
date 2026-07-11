@@ -1,0 +1,25 @@
+{
+    "version": 1,
+    "rules": [
+        {
+            "id": "default",
+            "name": "默认规则",
+            "description": "系统默认规则",
+            "steps": []
+        },
+        {
+            "id": "rule_1",
+            "name": "新规则",
+            "description": "",
+            "steps": [
+                {
+                    "type": "replace",
+                    "parameters": {
+                        "from": "IMG_",
+                        "to": "1"
+                    }
+                }
+            ]
+        }
+    ]
+}
