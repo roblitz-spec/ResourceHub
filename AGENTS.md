@@ -95,3 +95,46 @@
 - **稳定基线**：每个 Milestone 锁 Tag、锁行为
 - **功能冻结**：完成后不轻易改，只能 Bug Fix
 - **文档同步**：行为变更必须更新 AGENTS.md
+
+## One Milestone, One Core Feature
+
+每个 Milestone 只引入一个核心能力。
+
+目的：
+- 控制变更范围
+- 降低回归风险
+- 提高测试覆盖质量
+- 简化 Validation
+- 建立清晰稳定的 Git 基线
+- 方便问题定位与回滚
+
+一个 Milestone 只完成一个新的 Rule、一个新的核心模块或一个独立的新能力。
+如果某项能力较大，应拆分为多个 Milestone，而不是一次完成。
+
+**关闭条件**（全部满足方可进入下一 Milestone）：
+
+1. 功能实现完成
+2. 自动化测试通过
+3. Validation 完成
+4. Smoke Test 完成
+5. Git Tag 已创建
+6. Feature Freeze 已执行
+7. AGENTS.md 已更新
+
+## Backward Compatibility
+
+除非属于 Major Version 或经明确批准的架构升级，否则必须保持向后兼容。
+
+原则：
+- 已保存的 Rule 配置（`rules.json`）必须保持兼容
+- 已公开的参数名称不得随意修改
+- 已冻结 Rule 的行为不得改变
+- 新功能应以扩展方式实现（新增 handler、新增 step type），而不是修改已有语义
+- 新增 Rule 不得破坏已有 Rule 的行为
+
+如果确实需要破坏兼容性，必须同时完成：
+
+1. 在当前 Milestone 中明确说明变更原因
+2. 提供迁移方案
+3. 更新 AGENTS.md
+4. 创建新的稳定 Git Tag，作为新的兼容性基线
