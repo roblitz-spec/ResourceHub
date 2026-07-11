@@ -57,6 +57,7 @@ class MainWindow(QMainWindow):
         self._current_dir: Path | None = None
         self._items: list[FileItem] = []
         self._scan_worker: ScanWorker | None = None
+        self._rename_worker: RenameWorker | None = None
         self._settings = Settings()
         self._logger = OperationLogger()
         self._tr = Translator()
@@ -310,9 +311,11 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(0, _on_paint_done)
 
     def closeEvent(self, event: object) -> None:
-        if self._scan_worker is not None:
-            self._scan_worker.wait()
-            self._scan_worker = None
+        for w in (self._scan_worker, self._rename_worker):
+            if w is not None:
+                w.wait(5000)
+        self._scan_worker = None
+        self._rename_worker = None
         super().closeEvent(event)
 
     # ---------- 按钮行为 ----------
@@ -404,13 +407,13 @@ class MainWindow(QMainWindow):
         progress.setWindowModality(Qt.WindowModal)
         progress.show()
 
-        worker = RenameWorker(plans, logger=self._logger)
-        worker.progress_changed.connect(progress.setValue, Qt.QueuedConnection)
-        worker.finished_with_result.connect(
+        self._rename_worker = RenameWorker(plans, logger=self._logger)
+        self._rename_worker.progress_changed.connect(progress.setValue, Qt.QueuedConnection)
+        self._rename_worker.finished_with_result.connect(
             lambda results: self._on_rename_finished(results, plans, progress),
             Qt.QueuedConnection,
         )
-        worker.start()
+        self._rename_worker.start()
 
     def _on_rename_finished(
         self, _results: list, plans: list, progress: QProgressDialog,
@@ -438,6 +441,10 @@ class MainWindow(QMainWindow):
         self._rename_btn.setEnabled(True)
         if success + overwritten > 0:
             self._undo_action.setEnabled(True)
+
+        if self._rename_worker is not None:
+            self._rename_worker.deleteLater()
+            self._rename_worker = None
 
         # 就地更新已改名文件，不重扫目录
         for plan in plans:

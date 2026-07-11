@@ -13,10 +13,12 @@
             "description": "",
             "steps": [
                 {
-                    "type": "replace",
+                    "type": "number",
                     "parameters": {
-                        "from": "IMG_",
-                        "to": "1"
+                        "start": "1",
+                        "step": "1",
+                        "padding": "3",
+                        "position": "prefix"
                     }
                 }
             ]
