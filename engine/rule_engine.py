@@ -71,6 +71,10 @@ def _handle_date(text: str, params: dict[str, object], ctx: dict | None = None) 
     return f"{date_str}{sep}{text}"
 
 
+def _handle_add_suffix(text: str, params: dict[str, object], _ctx: dict | None = None) -> str:
+    return text + str(params["text"])
+
+
 def _handle_insert(text: str, params: dict[str, object], _ctx: dict | None = None) -> str:
     insert_text = str(params.get("text", ""))
     at_idx = int(str(params.get("at_index", "0")))
@@ -104,6 +108,7 @@ _HANDLERS: dict[str, object] = {
     "number": _handle_number,
     "insert": _handle_insert,
     "date": _handle_date,
+    "add_suffix": _handle_add_suffix,
 }
 
 

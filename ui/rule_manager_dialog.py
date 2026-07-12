@@ -38,6 +38,7 @@ _STEP_TYPES: list[tuple[str, str, str, str]] = [
     ("insert",        "插入文本",   "文本处理", "📝"),
     ("date",          "日期",       "文本处理", "📅"),
     ("add_prefix",    "添加前缀",   "添加",    "➕"),
+    ("add_suffix",    "添加后缀",   "添加",    "🔚"),
 ]
 
 _STEP_DEFAULTS: dict[str, dict[str, object]] = {
@@ -50,6 +51,7 @@ _STEP_DEFAULTS: dict[str, dict[str, object]] = {
     "number":        {"start": "1", "step": "1", "padding": "3", "position": "prefix"},
     "insert":        {"text": "", "at_index": "0"},
     "date":          {"source": "modified", "format": "%Y-%m-%d", "position": "prefix", "separator": "_"},
+    "add_suffix":    {"text": ""},
 }
 
 
@@ -209,6 +211,12 @@ class RuleManagerDialog(QDialog):
         _.addRow("分隔符：", self._date_sep); _.addRow("位置：", self._date_pos)
         self._param_stack.addWidget(pg)
 
+        # 10: add_suffix
+        pg, _ = _make_page()
+        self._suffix_text = QLineEdit(); self._suffix_text.setPlaceholderText("要添加的后缀（扩展名前）")
+        _.addRow("后缀文字：", self._suffix_text)
+        self._param_stack.addWidget(pg)
+
         right.addWidget(self._param_stack)
 
         # 信号连接
@@ -227,6 +235,7 @@ class RuleManagerDialog(QDialog):
         self._date_sep.textChanged.connect(self._on_param_changed)
         self._date_src.currentIndexChanged.connect(lambda: self._on_param_changed())
         self._date_pos.currentIndexChanged.connect(lambda: self._on_param_changed())
+        self._suffix_text.textChanged.connect(self._on_param_changed)
 
         # ── 底部按钮 ──
         btn_layout = QHBoxLayout()
@@ -326,6 +335,7 @@ class RuleManagerDialog(QDialog):
                 "number": f"编号  #{p.get('start','1')}+{p.get('step','1')} pad={p.get('padding','3')}",
                 "insert": f"插入  \"{p.get('text','?')}\" @{p.get('at_index','0')}",
                 "date": f"日期  {p.get('format','?')} ({p.get('position','?')})",
+                "add_suffix": f"后缀  \"{p.get('text','?')}\"",
             }.get(step.type, step.type)
             item = QListWidgetItem(f"{num} {label}")
             item.setData(1, id(step))
@@ -345,7 +355,7 @@ class RuleManagerDialog(QDialog):
 
     _PAGE_INDEX: dict[str, int] = {
         "replace": 1, "remove_text": 2, "add_prefix": 3,
-        "regex_replace": 4, "case": 5, "trim": 6, "number": 7, "insert": 8, "date": 9,
+        "regex_replace": 4, "case": 5, "trim": 6, "number": 7, "insert": 8, "date": 9, "add_suffix": 10,
     }
 
     def _on_step_selected(
@@ -428,6 +438,10 @@ class RuleManagerDialog(QDialog):
                     self._date_pos.setCurrentIndex(i); break
             self._date_src.blockSignals(False); self._date_fmt.blockSignals(False)
             self._date_sep.blockSignals(False); self._date_pos.blockSignals(False)
+        elif page == 10:  # add_suffix
+            self._suffix_text.blockSignals(True)
+            self._suffix_text.setText(str(params.get("text", "")))
+            self._suffix_text.blockSignals(False)
 
         self._param_stack.setCurrentIndex(page)
 
@@ -546,6 +560,8 @@ class RuleManagerDialog(QDialog):
             step.parameters["format"] = self._date_fmt.text()
             step.parameters["separator"] = self._date_sep.text()
             step.parameters["position"] = self._date_pos.currentData()
+        elif tp == "add_suffix":
+            step.parameters["text"] = self._suffix_text.text()
         self._notify_steps_changed()
         row = self._step_list.currentRow()
         self._refresh_step_list()

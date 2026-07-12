@@ -498,6 +498,46 @@ class TestDateRule:
         shutil.rmtree(d)
 
 
+class TestAddSuffix:
+    """AddSuffix RuleStep 测试。"""
+
+    def test_basic(self) -> None:
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="add_suffix", parameters={"text": "_v2"}),
+        ])
+        assert RuleEngine.apply(_file_item("photo"), rule) == "photo_v2"
+
+    def test_with_prefix(self) -> None:
+        """Prefix + Suffix 组合。"""
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="add_prefix", parameters={"text": "[OK]"}),
+            RuleStep(type="add_suffix", parameters={"text": "_final"}),
+        ])
+        assert RuleEngine.apply(_file_item("file"), rule) == "[OK]file_final"
+
+    def test_with_number_and_prefix(self) -> None:
+        """Number + Prefix + Suffix 组合。"""
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="number", parameters={"padding": "2"}),
+            RuleStep(type="add_prefix", parameters={"text": "[HD]"}),
+            RuleStep(type="add_suffix", parameters={"text": "_done"}),
+        ])
+        result = RuleEngine.apply(_file_item("file"), rule, {"index": 1})
+        assert result == "[HD]01_file_done"
+
+    def test_preview_with_folders(self) -> None:
+        """文件夹不占编号，suffix 正常。"""
+        folder = FileItem(full_path=Path("/fake/d"), original_name="d", base_name="d", extension="", item_type=ItemType.DIRECTORY)
+        items = [folder, _file_item("A", ".txt"), _file_item("B", ".txt")]
+        rule = Rule(id="r", name="r", steps=[
+            RuleStep(type="add_suffix", parameters={"text": "_v2"}),
+        ])
+        PreviewEngine.generate_preview(items, rule)
+        assert items[0].preview_name is None
+        assert items[1].preview_name == "A_v2"
+        assert items[2].preview_name == "B_v2"
+
+
     def test_preview_rename_plan_consistency(self) -> None:
         """Preview → RenamePlan 的 target_name 一致。"""
         item = _file_item("file", ".txt")
