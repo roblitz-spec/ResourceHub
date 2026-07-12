@@ -1,6 +1,18 @@
 # ResourceHub — AI Onboarding & Memory Governance
 
-**AI Memory Version**: v1.0
+**AI Memory Version**: v2.0
+
+## Quick AI Recovery
+
+**Fastest path** (2–5 minutes):
+
+```
+README_AI.md  →  AI_MEMORY_PACK.md  →  start working
+```
+
+`AI_MEMORY_PACK.md` is auto-generated from source docs. It is regenerated after every Major Milestone, Release, or significant Architecture Decision. **Never edit it manually.**
+
+Alternative: read all 12 source documents in order.
 
 ## Purpose
 
