@@ -1,6 +1,7 @@
 # ResourceHub — AI Handoff
 
 > For new AI sessions. Read this first to restore context.
+> **AI Memory v1.0** — see `README_AI.md` for governance.
 
 ## Current State
 

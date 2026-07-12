@@ -1,5 +1,7 @@
 # ResourceHub — AI Changelog
 
+> For architecture decisions behind these changes, see [`DECISION_LOG.md`](DECISION_LOG.md).
+
 ## M15 RC
 - **AddSuffix Rule**: Independent `add_suffix` handler, no impact on `add_prefix`
 - **Undo Validation**: Target missing + double undo edge cases covered
