@@ -13,12 +13,15 @@
             "description": "",
             "steps": [
                 {
-                    "type": "number",
+                    "type": "add_prefix",
                     "parameters": {
-                        "start": "1",
-                        "step": "1",
-                        "padding": "3",
-                        "position": "prefix"
+                        "text": "007"
+                    }
+                },
+                {
+                    "type": "add_prefix",
+                    "parameters": {
+                        "text": "123"
                     }
                 }
             ]

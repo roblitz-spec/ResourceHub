@@ -104,8 +104,10 @@ class RuleManagerDialog(QDialog):
         self._del_step_btn = QPushButton("删除步骤")
         self._del_step_btn.clicked.connect(self._on_delete_step)
         self._up_btn = QPushButton("↑")
+        self._up_btn.setToolTip("上移（调整执行顺序）")
         self._up_btn.clicked.connect(self._on_move_up)
         self._down_btn = QPushButton("↓")
+        self._down_btn.setToolTip("下移（调整执行顺序）")
         self._down_btn.clicked.connect(self._on_move_down)
 
         step_toolbar.addWidget(self._add_step_btn)
@@ -228,8 +230,8 @@ class RuleManagerDialog(QDialog):
 
         # ── 底部按钮 ──
         btn_layout = QHBoxLayout()
-        btn_layout.addWidget(QPushButton("新增", clicked=self._on_add_rule))
-        btn_layout.addWidget(QPushButton("删除", clicked=self._on_delete_rule))
+        btn_layout.addWidget(QPushButton("新建规则", clicked=self._on_add_rule))
+        btn_layout.addWidget(QPushButton("删除规则", clicked=self._on_delete_rule))
         btn_layout.addStretch()
         btn_layout.addWidget(QPushButton("保存", clicked=self._on_save))
         btn_layout.addWidget(QPushButton("关闭", clicked=self.close))
@@ -304,13 +306,16 @@ class RuleManagerDialog(QDialog):
     #  Step 列表
     # ============================================================
 
+    _STEP_NUMBERS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
+
     def _refresh_step_list(self) -> None:
         self._step_list.clear()
         self._param_stack.setCurrentIndex(0)
         if self._current_rule is None:
             return
-        for step in self._current_rule.steps:
+        for i, step in enumerate(self._current_rule.steps):
             p = step.parameters
+            num = self._STEP_NUMBERS[i] if i < len(self._STEP_NUMBERS) else f"{i+1}."
             label = {
                 "replace": f"替换  {p.get('from', '?')} → {p.get('to', '?')}",
                 "remove_text": f"删除  \"{p.get('text', '?')}\"",
@@ -322,7 +327,7 @@ class RuleManagerDialog(QDialog):
                 "insert": f"插入  \"{p.get('text','?')}\" @{p.get('at_index','0')}",
                 "date": f"日期  {p.get('format','?')} ({p.get('position','?')})",
             }.get(step.type, step.type)
-            item = QListWidgetItem(label)
+            item = QListWidgetItem(f"{num} {label}")
             item.setData(1, id(step))
             self._step_list.addItem(item)
 
