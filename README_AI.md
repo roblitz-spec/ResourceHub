@@ -14,6 +14,14 @@ README_AI.md  →  AI_MEMORY_PACK.md  →  start working
 
 Alternative: read all 12 source documents in order.
 
+## Governance
+
+The AI Memory System defines the project's long-term knowledge.
+
+- `README_AI.md` — project governance (this file)
+- `AI_MEMORY_PACK.md` — generated snapshot for fast AI session recovery
+- Reviewer and Developer startup prompts — role-specific behavior
+
 ## Purpose
 
 `docs/AI/` is the long-term memory for AI collaborators. It enables:
@@ -83,6 +91,46 @@ A Milestone is complete only when:
 ✓ Feature Freeze declared
 ✓ Reviewer approved
 ```
+
+## Standard Milestone Workflow
+
+Unless explicitly approved by the Reviewer, every Milestone follows this default development process:
+
+```
+Assessment
+        │
+        ▼
+Implementation
+        │
+        ▼
+pytest
+        │
+        ▼
+Regression
+        │
+        ▼
+Update AI Memory (if required)
+        │
+        ▼
+python tools/generate_ai_memory.py
+        │
+        ▼
+Submit Result
+        │
+        ▼
+Reviewer Assessment
+        │
+        ▼
+Reviewer Approval
+```
+
+**Rules**:
+- Do not skip any stage.
+- If no AI Memory source document changed, regenerating `AI_MEMORY_PACK.md` is optional.
+- Architecture changes require Reviewer approval before implementation.
+- A Milestone is complete only after all Release Exit Criteria are satisfied.
+
+This workflow is the project's default development process. Do not modify it unless the project governance is intentionally revised.
 
 ## Quick Commands
 
