@@ -12,7 +12,11 @@
 5. [`docs/AI/DEVELOPMENT_CONSTITUTION.md`](docs/AI/DEVELOPMENT_CONSTITUTION.md) — Principles you must follow
 6. [`docs/AI/AI_WORKFLOW.md`](docs/AI/AI_WORKFLOW.md) — How Reviewer + Developer collaborate
 7. [`docs/AI/TEST_STRATEGY.md`](docs/AI/TEST_STRATEGY.md) — Test layers and release gates
-8. [`docs/AI/NEXT_MILESTONE.md`](docs/AI/NEXT_MILESTONE.md) — Upcoming work
+8. [`docs/AI/DECISION_LOG.md`](docs/AI/DECISION_LOG.md) — Historical technical decisions (ADR)
+9. [`docs/AI/KNOWN_LIMITATIONS.md`](docs/AI/KNOWN_LIMITATIONS.md) — Current constraints
+10. [`docs/AI/NEXT_MILESTONE.md`](docs/AI/NEXT_MILESTONE.md) — Upcoming work
+11. [`docs/AI/CHANGELOG_AI.md`](docs/AI/CHANGELOG_AI.md) — Milestone history
+12. [`docs/AI/REVIEW_GUIDELINES.md`](docs/AI/REVIEW_GUIDELINES.md) — Review checklist and verdicts
 
 ## Quick Commands
 
