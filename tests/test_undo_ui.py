@@ -66,3 +66,30 @@ class TestUndoUI:
 
             UndoEngine.undo(logger)
             assert len(logger.records()) == 0
+
+    def test_undo_target_missing_skipped(self) -> None:
+        """Undo 时目标文件已被删除 → skip 该项。"""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            src = root / "old.txt"; src.write_text("data")
+            logger = OperationLogger()
+
+            # 改名后删除目标文件
+            RenameEngine.rename([_plan(_file(src, "new"))], logger=logger)
+            (root / "new.txt").unlink()
+
+            results = UndoEngine.undo(logger)
+            assert not results[0].success  # 目标不存在 → 失败
+
+    def test_double_undo_no_op(self) -> None:
+        """Undo 后再次 Undo → 日志为空，无操作。"""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            src = root / "a.txt"; src.write_text("ok")
+            logger = OperationLogger()
+
+            RenameEngine.rename([_plan(_file(src, "b"))], logger=logger)
+            UndoEngine.undo(logger)  # 第一次 undo 成功
+            # 第二次 undo — logger 已清空
+            results = UndoEngine.undo(logger)
+            assert len(results) == 0
