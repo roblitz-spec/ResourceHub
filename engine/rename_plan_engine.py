@@ -3,7 +3,6 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from models.enums import ItemType
 from models.file_item import FileItem
 from models.rename_plan import (
     RenameAction,
@@ -33,17 +32,6 @@ class RenamePlanEngine:
 
         # 第一步：生成基础计划 + 合法性检测
         for item in items:
-            if item.item_type == ItemType.DIRECTORY:
-                plans.append(RenamePlan(
-                    source=item.full_path,
-                    source_name=item.original_name,
-                    target_name=item.original_name,
-                    target=item.full_path,
-                    status=RenamePlanStatus.NO_CHANGE,
-                    action=RenameAction.SKIP,
-                ))
-                continue
-
             target_name = (item.preview_name or item.base_name) + item.extension
             target = item.full_path.parent / target_name
             needs_rename = target_name != item.original_name

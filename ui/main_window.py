@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
@@ -121,18 +122,24 @@ class MainWindow(QMainWindow):
         self._table_view.setModel(self._file_model)
         self._table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self._table_view.setSelectionBehavior(QTableView.SelectRows)
+        self._table_view.setSelectionMode(QAbstractItemView.SingleSelection)
         self._table_view.setEditTriggers(QTableView.NoEditTriggers)
         self._table_view.setAlternatingRowColors(True)
         self._table_view.verticalHeader().setVisible(False)
         main_layout.addWidget(self._table_view, stretch=1)
 
+        # 选择变化 → 更新状态栏
+        self._table_view.selectionModel().selectionChanged.connect(
+            self._on_selection_changed,
+        )
+
         # ---------- 第四部分：操作按钮 ----------
         action_layout = QHBoxLayout()
 
-        self._select_all_btn = QPushButton("全选")
+        self._select_all_btn = QPushButton("选择")
         self._select_all_btn.clicked.connect(self._on_select_all)
 
-        self._deselect_all_btn = QPushButton("取消全选")
+        self._deselect_all_btn = QPushButton("取消选择")
         self._deselect_all_btn.clicked.connect(self._on_deselect_all)
 
         self._rename_btn = QPushButton(self._tr.translate("btn.rename"))
@@ -231,7 +238,7 @@ class MainWindow(QMainWindow):
         if rule is None or not self._items:
             return
         PreviewEngine.generate_preview(self._items, rule)
-        self._file_model.set_items(self._items)
+        self._file_model.refresh_all()
 
     def _start_scan(self, directory: Path) -> None:
         if self._scan_worker is not None:
@@ -290,6 +297,9 @@ class MainWindow(QMainWindow):
         self._rename_btn.setEnabled(has_files)
         self._browse_btn.setEnabled(True)
         self._refresh_btn.setEnabled(True)
+
+        # 始终用当前规则重新生成预览（不以 ScanWorker 的为准）
+        self._refresh_preview()
 
         if worker is not None:
             worker.deleteLater()
@@ -356,9 +366,18 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "提示", "请先选择目录。")
             return
 
+        # 获取当前选中的文件
+        sm = self._table_view.selectionModel()
+        if sm is None or not sm.selectedRows():
+            QMessageBox.information(self, "提示", "请先选择资源。")
+            return
+
+        selected_row = sm.selectedRows()[0].row()
+        selected_items = [self._file_model.item(selected_row)]
+
         # 生成 RenamePlan（含完整决策）
         policy = self._settings.get_rename_policy()
-        plans = RenamePlanEngine.generate(self._items, policy)
+        plans = RenamePlanEngine.generate(selected_items, policy)
 
         # 拦截 INVALID / CONFLICT
         blocked = [p for p in plans if p.status in (
@@ -460,8 +479,18 @@ class MainWindow(QMainWindow):
         self._file_model.refresh_all()
         self._update_status_bar(self._items)
 
+    def _on_selection_changed(self) -> None:
+        sm = self._table_view.selectionModel()
+        if sm is not None:
+            count = len(sm.selectedRows())
+        else:
+            count = 0
+        self._selected_count_label.setText(f"已选择：{count}")
+
     def _on_select_all(self) -> None:
-        QMessageBox.information(self, "提示", "将在后续版本实现。")
+        if self._file_model.rowCount() > 0:
+            idx = self._file_model.index(0, 0)
+            self._table_view.selectRow(0)
 
     def _on_deselect_all(self) -> None:
-        QMessageBox.information(self, "提示", "将在后续版本实现。")
+        self._table_view.clearSelection()

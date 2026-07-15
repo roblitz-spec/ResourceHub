@@ -33,7 +33,7 @@
 
 ## Date Rule 行为规范
 
-- `source` 从 context `timestamps` 中获取时间戳
+- `source` 从 context `metadata`（MetadataProvider）中获取时间戳
 - 当前仅实现 `modified`；`created`/`exif`/`now` 预留
 - 未知 source → 返回原名（不 fallback）
 - context 缺失 → 返回原名（纯函数，不调用 `datetime.now()`）
@@ -65,11 +65,10 @@ RuleEngine 与 PreviewEngine 之间通过 `context` 字典通信。
 |---|---|---|---|
 | `context["index"]` | `int` | 当前文件序号（1-based） | Number Rule |
 | `context["count"]` | `int` | 文件总数 | 预留 |
-| `context["timestamps"]["modified"]` | `float` | 文件修改时间（`st_mtime`） | Date Rule |
-| `context["timestamps"]["created"]` | `float` | 文件创建时间（`st_ctime`） | 预留 |
+| `context["metadata"]` | `MetadataProvider` | 惰性元数据提供器（`modified`/`created`） | Date Rule |
 
 **扩展规则**：
-- 新增字段允许（如 `timestamps["exif"]`）
+- 新增 MetadataProvider 属性允许
 - 不得修改已冻结字段的名称、类型或语义
 - 未知字段或缺失字段 → handler 返回原名，不得崩溃
 

@@ -63,14 +63,16 @@ class TestRenamePlan:
         plans = RenamePlanEngine.generate(items)
         assert all(p.status == RenamePlanStatus.NO_CHANGE for p in plans)
 
-    def test_directory_skipped(self) -> None:
+    def test_directory_in_plan(self) -> None:
+        """目录与文件共用 RenamePlan 管道。"""
         d = FileItem(
             full_path=Path("/fake/d"), original_name="d",
             base_name="d", extension="", item_type=ItemType.DIRECTORY,
+            preview_name="d",
         )
         plans = RenamePlanEngine.generate([d])
         assert plans[0].status == RenamePlanStatus.NO_CHANGE
-        assert plans[0].target == d.full_path
+        assert plans[0].target_name == "d"
 
     def test_policy_in_plan(self) -> None:
         """RenamePolicy 在 generate 阶段决定 action。"""
