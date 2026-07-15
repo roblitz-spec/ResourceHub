@@ -363,9 +363,18 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "提示", "请先选择目录。")
             return
 
+        # 获取当前选中的文件
+        sm = self._table_view.selectionModel()
+        if sm is None or not sm.selectedRows():
+            QMessageBox.information(self, "提示", "请先选择资源。")
+            return
+
+        selected_row = sm.selectedRows()[0].row()
+        selected_items = [self._file_model.item(selected_row)]
+
         # 生成 RenamePlan（含完整决策）
         policy = self._settings.get_rename_policy()
-        plans = RenamePlanEngine.generate(self._items, policy)
+        plans = RenamePlanEngine.generate(selected_items, policy)
 
         # 拦截 INVALID / CONFLICT
         blocked = [p for p in plans if p.status in (

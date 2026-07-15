@@ -13,15 +13,10 @@
             "description": "",
             "steps": [
                 {
-                    "type": "add_prefix",
+                    "type": "replace",
                     "parameters": {
-                        "text": "007"
-                    }
-                },
-                {
-                    "type": "add_prefix",
-                    "parameters": {
-                        "text": "123"
+                        "from": "26",
+                        "to": "No."
                     }
                 }
             ]
