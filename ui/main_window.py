@@ -136,10 +136,10 @@ class MainWindow(QMainWindow):
         # ---------- 第四部分：操作按钮 ----------
         action_layout = QHBoxLayout()
 
-        self._select_all_btn = QPushButton("全选")
+        self._select_all_btn = QPushButton("选择")
         self._select_all_btn.clicked.connect(self._on_select_all)
 
-        self._deselect_all_btn = QPushButton("取消全选")
+        self._deselect_all_btn = QPushButton("取消选择")
         self._deselect_all_btn.clicked.connect(self._on_deselect_all)
 
         self._rename_btn = QPushButton(self._tr.translate("btn.rename"))
