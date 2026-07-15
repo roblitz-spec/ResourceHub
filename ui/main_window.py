@@ -7,6 +7,7 @@ from pathlib import Path
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
@@ -121,10 +122,16 @@ class MainWindow(QMainWindow):
         self._table_view.setModel(self._file_model)
         self._table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self._table_view.setSelectionBehavior(QTableView.SelectRows)
+        self._table_view.setSelectionMode(QAbstractItemView.SingleSelection)
         self._table_view.setEditTriggers(QTableView.NoEditTriggers)
         self._table_view.setAlternatingRowColors(True)
         self._table_view.verticalHeader().setVisible(False)
         main_layout.addWidget(self._table_view, stretch=1)
+
+        # 选择变化 → 更新状态栏
+        self._table_view.selectionModel().selectionChanged.connect(
+            self._on_selection_changed,
+        )
 
         # ---------- 第四部分：操作按钮 ----------
         action_layout = QHBoxLayout()
@@ -460,8 +467,18 @@ class MainWindow(QMainWindow):
         self._file_model.refresh_all()
         self._update_status_bar(self._items)
 
+    def _on_selection_changed(self) -> None:
+        sm = self._table_view.selectionModel()
+        if sm is not None:
+            count = len(sm.selectedRows())
+        else:
+            count = 0
+        self._selected_count_label.setText(f"已选择：{count}")
+
     def _on_select_all(self) -> None:
-        QMessageBox.information(self, "提示", "将在后续版本实现。")
+        if self._file_model.rowCount() > 0:
+            idx = self._file_model.index(0, 0)
+            self._table_view.selectRow(0)
 
     def _on_deselect_all(self) -> None:
-        QMessageBox.information(self, "提示", "将在后续版本实现。")
+        self._table_view.clearSelection()
