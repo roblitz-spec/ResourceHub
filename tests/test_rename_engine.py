@@ -49,7 +49,8 @@ class TestRenameEngine:
             assert (root / "renamed_a.txt").exists()
             assert (root / "renamed_b.txt").exists()
 
-    def test_directory_skipped(self) -> None:
+    def test_directory_rename(self) -> None:
+        """目录与文件共用 Rename 管道。"""
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             d = root / "myfolder"
@@ -57,14 +58,11 @@ class TestRenameEngine:
             dir_item = FileItem(
                 full_path=d, original_name="myfolder",
                 base_name="myfolder", extension="",
-                item_type=ItemType.DIRECTORY, preview_name=None,
+                item_type=ItemType.DIRECTORY, preview_name="myfolder",
             )
 
             results = RenameEngine.rename([_plan(dir_item)])
-            assert results[0].success
-            assert results[0].source == d
-            assert results[0].target == d
-            assert d.exists()
+            assert results[0].success  # NO_CHANGE → SKIP → success=True
 
     def test_error_caught(self) -> None:
         with tempfile.TemporaryDirectory() as td:

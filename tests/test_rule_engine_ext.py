@@ -233,8 +233,8 @@ class TestNumberRule:
         assert items[1].preview_name == "002_B"
         assert items[2].preview_name == "003_C"
 
-    def test_folder_does_not_consume_index(self) -> None:
-        """文件夹不占用编号索引。"""
+    def test_folder_consumes_index(self) -> None:
+        """文件夹与文件共用编号索引。"""
         folder = FileItem(
             full_path=Path("/fake/dir"), original_name="dir",
             base_name="dir", extension="", item_type=ItemType.DIRECTORY,
@@ -242,12 +242,12 @@ class TestNumberRule:
         items = [folder, _file_item("A", ".txt"), _file_item("B", ".txt")]
         rule = Rule(id="r", name="r", steps=[RuleStep(type="number", parameters={})])
         PreviewEngine.generate_preview(items, rule)
-        assert items[0].preview_name is None  # folder
-        assert items[1].preview_name == "001_A"
-        assert items[2].preview_name == "002_B"
+        assert items[0].preview_name == "001_dir"
+        assert items[1].preview_name == "002_A"
+        assert items[2].preview_name == "003_B"
 
     def test_mixed_folders_and_files(self) -> None:
-        """多个文件夹 + 文件混合 → 文件编号连续。"""
+        """多个文件夹 + 文件混合 → 统一编号。"""
         items = [
             FileItem(full_path=Path("/fake/d1"), original_name="d1", base_name="d1", extension="", item_type=ItemType.DIRECTORY),
             _file_item("A", ".txt"),
@@ -257,11 +257,11 @@ class TestNumberRule:
         ]
         rule = Rule(id="r", name="r", steps=[RuleStep(type="number", parameters={})])
         PreviewEngine.generate_preview(items, rule)
-        assert items[0].preview_name is None
-        assert items[1].preview_name == "001_A"
-        assert items[2].preview_name is None
-        assert items[3].preview_name == "002_B"
-        assert items[4].preview_name == "003_C"
+        assert items[0].preview_name == "001_d1"
+        assert items[1].preview_name == "002_A"
+        assert items[2].preview_name == "003_d2"
+        assert items[3].preview_name == "004_B"
+        assert items[4].preview_name == "005_C"
 
     def test_step_order_number_then_prefix(self) -> None:
         """Number → Prefix 顺序：先编号再加前缀。"""
@@ -394,8 +394,17 @@ class TestDateRule:
 
     TS = 1720134000.0  # 2024-07-04T23:00:00 UTC
 
+    @staticmethod
+    def _fake_meta(modified=None, created=None):
+        """构造与 MetadataProvider 兼容的测试提供器。"""
+        ns = type("_Meta", (), {})()
+        ns.modified = modified
+        ns.created = created
+        return ns
+
     def _ctx(self, source="modified"):
-        return {"timestamps": {source: self.TS}}
+        ts = self.TS if source == "modified" else None
+        return {"metadata": self._fake_meta(modified=ts)}
 
     def test_default_prefix(self) -> None:
         rule = Rule(id="r", name="r", steps=[RuleStep(type="date", parameters={})])
@@ -526,14 +535,14 @@ class TestAddSuffix:
         assert result == "[HD]01_file_done"
 
     def test_preview_with_folders(self) -> None:
-        """文件夹不占编号，suffix 正常。"""
+        """文件夹与文件共用 Preview，suffix 正常。"""
         folder = FileItem(full_path=Path("/fake/d"), original_name="d", base_name="d", extension="", item_type=ItemType.DIRECTORY)
         items = [folder, _file_item("A", ".txt"), _file_item("B", ".txt")]
         rule = Rule(id="r", name="r", steps=[
             RuleStep(type="add_suffix", parameters={"text": "_v2"}),
         ])
         PreviewEngine.generate_preview(items, rule)
-        assert items[0].preview_name is None
+        assert items[0].preview_name == "d_v2"
         assert items[1].preview_name == "A_v2"
         assert items[2].preview_name == "B_v2"
 

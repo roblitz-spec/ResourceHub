@@ -22,7 +22,7 @@
 - **QThread Stabilization**: RenameWorker lifecycle fix
 
 ## M14
-- **Date Rule**: `source`/`format`/`position`/`separator`, timestamps from PreviewEngine context
+- **Date Rule**: `source`/`format`/`position`/`separator`, metadata from PreviewEngine context (MetadataProvider)
 - **Number Rule Fix**: Folders no longer consume numbering index
 - **Tests**: 144 PASS
 

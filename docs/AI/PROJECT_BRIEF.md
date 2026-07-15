@@ -16,7 +16,7 @@ To provide a safe, previewable, rule-based batch rename experience with full Uni
 
 - **Scanner**: Non-recursive directory scan via `os.scandir()`
 - **Rule Engine**: 10 RuleStep types (replace, remove_text, regex_replace, case, trim, number, insert, date, add_prefix, add_suffix)
-- **Preview Engine**: Real-time preview with context (index, timestamps)
+- **Preview Engine**: Real-time preview with context (index, metadata via MetadataProvider)
 - **RenamePlan Engine**: Unified plan generation + conflict detection + legality checks
 - **Rename Engine**: Policy-based execution (FAIL/SKIP/OVERWRITE)
 - **Undo Engine**: Single-level undo via OperationLogger

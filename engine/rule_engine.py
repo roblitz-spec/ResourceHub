@@ -59,8 +59,9 @@ def _handle_date(text: str, params: dict[str, object], ctx: dict | None = None) 
     sep = str(params.get("separator", "_"))
 
     ts = None
-    if ctx and "timestamps" in ctx:
-        ts = ctx["timestamps"].get(source)
+    provider = (ctx or {}).get("metadata")
+    if provider is not None:
+        ts = provider.modified if source == "modified" else provider.created
 
     if ts is None:
         return text  # 纯函数：无时间戳 → 返回原名

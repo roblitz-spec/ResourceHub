@@ -19,8 +19,8 @@
 
 ## Directory Rename
 
-- **Directories are Skipped**: The rename pipeline only processes `ItemType.FILE`. Directories are always left unchanged.
-- **No Directory Rename Strategy**: Future assessment needed for folder rename support.
+- **Directory + File Unified Pipeline**: Directories and files share the same Rename Pipeline (Preview → RenamePlan → Rename → Undo).
+- **No Recursive Rename**: Directory rename does not affect directory contents. Only the directory name itself is changed.
 
 ## Rule Extensibility
 

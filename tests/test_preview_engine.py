@@ -46,11 +46,12 @@ class TestPreviewEngine:
         assert items[0].preview_name == "A B"
         assert items[1].preview_name == "C D"
 
-    def test_directory_skipped(self) -> None:
+    def test_directory_preview(self) -> None:
+        """目录与文件共用 Preview 管道，目录名也经过 Rule 处理。"""
         items = [_file("A_B.mkv"), _dir("测试文件夹")]
         PreviewEngine.generate_preview(items, _RULE)
         assert items[0].preview_name == "A B"
-        assert items[1].preview_name is None
+        assert items[1].preview_name == "测试文件夹"  # 目录名无 _ 故不变
 
     def test_switch_rule(self) -> None:
         item = _file("Movie_1080p.mkv")

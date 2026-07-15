@@ -36,5 +36,5 @@
 
 - **Milestone**: M14 (Date Rule)
 - **Status**: Accepted
-- **Decision**: Context fields (`index`, `timestamps.modified`, `timestamps.created`) are frozen. New fields can be added but existing ones cannot be renamed or re-typed.
+- **Decision**: Context fields (`index`, `metadata`) are frozen. `metadata` is a `MetadataProvider` with lazy `modified`/`created` properties. New fields can be added but existing ones cannot be renamed or re-typed.
 - **Reason**: Rule handlers depend on these fields. Renaming breaks existing Rule configurations.
