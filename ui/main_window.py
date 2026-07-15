@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
         if rule is None or not self._items:
             return
         PreviewEngine.generate_preview(self._items, rule)
-        self._file_model.set_items(self._items)
+        self._file_model.refresh_all()
 
     def _start_scan(self, directory: Path) -> None:
         if self._scan_worker is not None:
@@ -297,6 +297,9 @@ class MainWindow(QMainWindow):
         self._rename_btn.setEnabled(has_files)
         self._browse_btn.setEnabled(True)
         self._refresh_btn.setEnabled(True)
+
+        # 始终用当前规则重新生成预览（不以 ScanWorker 的为准）
+        self._refresh_preview()
 
         if worker is not None:
             worker.deleteLater()
