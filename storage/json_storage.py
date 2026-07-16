@@ -30,6 +30,7 @@ class JsonStorage:
                 name=item["name"],
                 description=item.get("description", ""),
                 steps=steps,
+                pinned=item.get("pinned", False),  # 向后兼容：旧数据无此字段
             ))
         return rules
 
@@ -42,6 +43,7 @@ class JsonStorage:
                     "id": r.id,
                     "name": r.name,
                     "description": r.description,
+                    "pinned": r.pinned,
                     "steps": [
                         {"type": s.type, "parameters": s.parameters}
                         for s in r.steps

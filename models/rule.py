@@ -13,3 +13,4 @@ class Rule:
     name: str
     description: str = ""
     steps: list[RuleStep] = field(default_factory=list)
+    pinned: bool = False

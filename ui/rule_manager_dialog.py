@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
@@ -26,6 +27,7 @@ from PySide6.QtWidgets import (
 from models.rule import Rule
 from models.rule_step import RuleStep
 from storage.repository import RuleRepository
+from ui.regex_assistant import RegexAssistant
 
 _STEP_TYPES: list[tuple[str, str, str, str]] = [
     # (type, label, category, icon)
@@ -68,6 +70,7 @@ class RuleManagerDialog(QDialog):
         self._repo = repo
         self._current_rule: Rule | None = None
         self._on_steps_changed = on_steps_changed
+        self._regex_assistant: RegexAssistant | None = None
 
         self.setWindowTitle("规则管理")
         self.resize(900, 550)
@@ -79,6 +82,8 @@ class RuleManagerDialog(QDialog):
         left.addWidget(QLabel("规则列表"))
         self._rule_list = QListWidget()
         self._rule_list.currentItemChanged.connect(self._on_rule_selected)
+        self._rule_list.setContextMenuPolicy(QtCore.CustomContextMenu)
+        self._rule_list.customContextMenuRequested.connect(self._on_rule_context_menu)
         left.addWidget(self._rule_list, stretch=1)
         root.addLayout(left, stretch=1)
 
@@ -155,11 +160,17 @@ class RuleManagerDialog(QDialog):
         self._param_stack.addWidget(pg)
 
         # 4: regex_replace
-        pg, _ = _make_page(); self._regex_pat = QLineEdit(); self._regex_repl = QLineEdit(); self._regex_flags = QLineEdit()
+        pg, regex_layout = _make_page()
+        self._regex_pat = QLineEdit(); self._regex_repl = QLineEdit(); self._regex_flags = QLineEdit()
         self._regex_pat.setPlaceholderText("例如 \\d+p$")
         self._regex_repl.setPlaceholderText("支持 \\1 分组引用")
         self._regex_flags.setPlaceholderText("可选：I=忽略大小写 M=多行")
-        _.addRow("匹配表达式：", self._regex_pat); _.addRow("替换内容：", self._regex_repl); _.addRow("标志位：", self._regex_flags)
+        regex_layout.addRow("匹配表达式：", self._regex_pat)
+        regex_layout.addRow("替换内容：", self._regex_repl)
+        regex_layout.addRow("标志位：", self._regex_flags)
+        self._regex_assistant_btn = QPushButton("Regex Assistant...")
+        self._regex_assistant_btn.clicked.connect(self._on_open_regex_assistant)
+        regex_layout.addRow("", self._regex_assistant_btn)
         self._param_stack.addWidget(pg)
 
         # 5: case
@@ -257,9 +268,40 @@ class RuleManagerDialog(QDialog):
     def _refresh_rule_list(self) -> None:
         self._rule_list.clear()
         for rule in self._repo.all_rules():
-            item = QListWidgetItem(rule.name)
+            label = f"📌 {rule.name}" if rule.pinned else rule.name
+            item = QListWidgetItem(label)
             item.setData(1, rule.id)
             self._rule_list.addItem(item)
+
+    def _on_rule_context_menu(self, pos) -> None:
+        item = self._rule_list.itemAt(pos)
+        if item is None:
+            return
+        rule_id = item.data(1)
+        rule = self._repo.find(rule_id)
+        if rule is None:
+            return
+
+        menu = QMenu(self)
+        if rule.pinned:
+            unpin_action = menu.addAction("取消置顶")
+        else:
+            pin_action = menu.addAction("置顶")
+
+        action = menu.exec(self._rule_list.viewport().mapToGlobal(pos))
+        if action is None:
+            return
+
+        if rule.pinned and action.text() == "取消置顶":
+            rule.pinned = False
+        elif not rule.pinned and action.text() == "置顶":
+            rule.pinned = True
+        else:
+            return
+
+        self._repo.save()
+        self._refresh_rule_list()
+        self._select_rule_in_list(rule.id)
 
     def _select_rule_in_list(self, rule_id: str) -> None:
         for i in range(self._rule_list.count()):
@@ -300,9 +342,10 @@ class RuleManagerDialog(QDialog):
     def _on_delete_rule(self) -> None:
         if self._current_rule is None:
             return
-        if self._current_rule.id == "default":
-            QMessageBox.warning(self, "提示", "默认规则不可删除。")
-            return
+
+        # 记录删除前的位置，删除后选择相邻规则
+        rules = self._repo.all_rules()
+        del_idx = next((i for i, r in enumerate(rules) if r.id == self._current_rule.id), -1)
         self._repo.remove(self._current_rule.id)
         self._repo.save()
         self._current_rule = None
@@ -310,6 +353,35 @@ class RuleManagerDialog(QDialog):
         self._desc_edit.clear()
         self._refresh_rule_list()
         self._refresh_step_list()
+
+        # 选择相邻规则
+        rules_after = self._repo.all_rules()
+        if rules_after:
+            adj_idx = min(del_idx, len(rules_after) - 1)
+            self._rule_list.setCurrentRow(adj_idx)
+
+    def _on_open_regex_assistant(self) -> None:
+        if self._regex_assistant is None:
+            self._regex_assistant = RegexAssistant(
+                on_insert=self._on_regex_template_insert,
+                parent=self,
+            )
+            self._regex_assistant.destroyed.connect(
+                lambda: setattr(self, "_regex_assistant", None),
+            )
+        self._regex_assistant.show()
+        self._regex_assistant.raise_()
+        self._regex_assistant.activateWindow()
+
+    def _on_regex_template_insert(self, pattern: str, replacement: str) -> None:
+        current_pat = self._regex_pat.text()
+        current_repl = self._regex_repl.text()
+        if current_pat or current_repl:
+            if not RegexAssistant.confirm_overwrite(self):
+                return
+        self._regex_pat.setText(pattern)
+        self._regex_repl.setText(replacement)
+        self._on_param_changed()
 
     # ============================================================
     #  Step 列表

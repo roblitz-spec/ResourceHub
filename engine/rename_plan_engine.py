@@ -81,8 +81,22 @@ class RenamePlanEngine:
         for plan in plans:
             if plan.status != RenamePlanStatus.READY:
                 continue
+            # 目标与源文件名完全相同 → 无需操作（非冲突）
+            # 使用字符串比较，避免 Windows Path 大小写不敏感导致误判
+            if plan.target_name == plan.source_name:
+                plan.status = RenamePlanStatus.NO_CHANGE
+                plan.action = RenameAction.SKIP
+                plan.message = "无需重命名"
+                continue
             if not plan.target.exists():
                 continue
+            # 目标存在但可能与源是同一文件（Windows 大小写重命名）
+            # Path.samefile() 通过 st_dev + st_ino 判断是否为同一文件
+            try:
+                if plan.target.samefile(plan.source):
+                    continue  # 同一文件，大小写重命名 → 保持 READY
+            except OSError:
+                pass  # samefile 不可用 → 按常规冲突处理
             if policy == RenamePolicy.FAIL:
                 plan.status = RenamePlanStatus.CONFLICT
                 plan.action = RenameAction.FAIL

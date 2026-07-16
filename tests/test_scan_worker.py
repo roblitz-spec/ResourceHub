@@ -63,3 +63,69 @@ class TestScanWorker:
         worker.start()
         worker.wait()
         assert worker.items == []
+
+    def test_repeat_scan_no_thread_warning(self, qapp: QApplication) -> None:
+        """重复扫描不触发 QThread destroyed 警告。"""
+        import warnings, io, sys
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for i in range(5):
+                (root / f"file_{i}.txt").touch()
+
+            # 捕获 stderr 中的 Qt 警告
+            old_stderr = sys.stderr
+            sys.stderr = io.StringIO()
+
+            try:
+                for _ in range(3):
+                    worker = ScanWorker([root])
+                    worker.start()
+                    worker.wait()
+                    worker.deleteLater()
+                    QApplication.processEvents()
+            finally:
+                output = sys.stderr.getvalue()
+                sys.stderr = old_stderr
+
+            assert "Destroyed while thread is still running" not in output
+
+    def test_rename_worker_no_thread_warning(self, qapp: QApplication) -> None:
+        """RenameWorker 生命周期不触发线程警告。"""
+        import warnings, io, sys
+
+        from engine.rename_engine import RenameEngine
+        from engine.rename_plan_engine import RenamePlanEngine
+        from models.file_item import FileItem
+        from workers.rename_worker import RenameWorker
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for i in range(3):
+                p = root / f"old_{i}.txt"; p.write_text("x")
+
+            items = []
+            for i in range(3):
+                p = root / f"old_{i}.txt"
+                items.append(FileItem(
+                    full_path=p, original_name=f"old_{i}.txt",
+                    base_name=f"old_{i}", extension=".txt",
+                    item_type=ItemType.FILE, preview_name=f"new_{i}",
+                ))
+            plans = RenamePlanEngine.generate(items)
+
+            old_stderr = sys.stderr
+            sys.stderr = io.StringIO()
+
+            try:
+                for _ in range(2):
+                    w = RenameWorker(plans)
+                    w.start()
+                    w.wait()
+                    w.deleteLater()
+                    QApplication.processEvents()
+            finally:
+                output = sys.stderr.getvalue()
+                sys.stderr = old_stderr
+
+            assert "Destroyed while thread is still running" not in output

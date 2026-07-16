@@ -4,16 +4,18 @@ import os
 import time
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QSortFilterProxyModel
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QApplication,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
+    QMenu,
     QMenuBar,
     QMessageBox,
     QMainWindow,
@@ -36,7 +38,7 @@ from models.file_item import FileItem
 from models.rename_plan import RenameAction, RenamePlanStatus
 from models.rule import Rule
 from storage.repository import RuleRepository
-from ui.file_table_model import FileTableModel
+from ui.file_table_model import FileTableModel, SortProxyModel
 from ui.operation_log_dialog import OperationLogDialog
 from ui.rule_manager_dialog import RuleManagerDialog
 from ui.settings_dialog import SettingsDialog
@@ -107,6 +109,14 @@ class MainWindow(QMainWindow):
         for r in self._repo.all_rules():
             self._rule_combo.addItem(r.name, r.id)
 
+        # 恢复上次选中的规则
+        last_id = self._settings.get_last_rule_id()
+        if last_id is not None:
+            for i in range(self._rule_combo.count()):
+                if self._rule_combo.itemData(i) == last_id:
+                    self._rule_combo.setCurrentIndex(i)
+                    break
+
         self._rule_mgr_btn = QPushButton("规则管理")
         self._rule_mgr_btn.clicked.connect(self._on_rule_manage)
 
@@ -117,16 +127,26 @@ class MainWindow(QMainWindow):
 
         # ---------- 第三部分：文件列表 ----------
         self._file_model = FileTableModel()
+        self._sort_proxy = SortProxyModel()
+        self._sort_proxy.setSourceModel(self._file_model)
 
         self._table_view = QTableView()
-        self._table_view.setModel(self._file_model)
+        self._table_view.setModel(self._sort_proxy)
         self._table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self._table_view.setSelectionBehavior(QTableView.SelectRows)
         self._table_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self._table_view.setEditTriggers(QTableView.NoEditTriggers)
         self._table_view.setAlternatingRowColors(True)
         self._table_view.verticalHeader().setVisible(False)
+        self._table_view.setSortingEnabled(True)
         main_layout.addWidget(self._table_view, stretch=1)
+
+        # 表头点击 → 3 态排序
+        self._table_view.horizontalHeader().sectionClicked.connect(self._on_header_clicked)
+
+        # 右键菜单
+        self._table_view.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._table_view.customContextMenuRequested.connect(self._on_context_menu)
 
         # 选择变化 → 更新状态栏
         self._table_view.selectionModel().selectionChanged.connect(
@@ -302,6 +322,7 @@ class MainWindow(QMainWindow):
         self._refresh_preview()
 
         if worker is not None:
+            worker.wait()
             worker.deleteLater()
             self._scan_worker = None
 
@@ -351,14 +372,24 @@ class MainWindow(QMainWindow):
             parent=self,
         )
         dialog.exec()
+        rule_id = self._rule_combo.currentData()
         self._rule_combo.blockSignals(True)
         self._rule_combo.clear()
         for r in self._repo.all_rules():
             self._rule_combo.addItem(r.name, r.id)
+        # 恢复之前选中的规则
+        if rule_id is not None:
+            for i in range(self._rule_combo.count()):
+                if self._rule_combo.itemData(i) == rule_id:
+                    self._rule_combo.setCurrentIndex(i)
+                    break
         self._rule_combo.blockSignals(False)
         self._refresh_preview()
 
     def _on_rule_changed(self, _index: int) -> None:
+        rule_id = self._rule_combo.currentData()
+        if isinstance(rule_id, str):
+            self._settings.set_last_rule_id(rule_id)
         self._refresh_preview()
 
     def _on_rename(self) -> None:
@@ -372,8 +403,10 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "提示", "请先选择资源。")
             return
 
-        selected_rows = sorted(r.row() for r in sm.selectedRows())
-        selected_items = [self._file_model.item(r) for r in selected_rows]
+        selected_items = [
+            self._file_model.item(self._sort_proxy.mapToSource(r).row())
+            for r in sm.selectedRows()
+        ]
 
         # 生成 RenamePlan（含完整决策）
         policy = self._settings.get_rename_policy()
@@ -462,22 +495,13 @@ class MainWindow(QMainWindow):
             self._undo_action.setEnabled(True)
 
         if self._rename_worker is not None:
+            self._rename_worker.wait()
             self._rename_worker.deleteLater()
             self._rename_worker = None
 
-        # 就地更新已改名文件，不重扫目录
-        for plan in plans:
-            if plan.status in (S.SUCCESS, S.OVERWRITTEN):
-                for item in self._items:
-                    if item.full_path == plan.source:
-                        item.full_path = plan.target
-                        item.original_name = plan.target_name
-                        stem = plan.target.stem
-                        item.base_name = stem
-                        item.preview_name = item.preview_name  # 保持预览
-                        break
-        self._file_model.refresh_all()
-        self._update_status_bar(self._items)
+        # 重扫目录以获取最新文件状态
+        if self._current_dir is not None:
+            self._start_scan(self._current_dir)
 
     def _on_selection_changed(self) -> None:
         sm = self._table_view.selectionModel()
@@ -493,3 +517,34 @@ class MainWindow(QMainWindow):
 
     def _on_deselect_all(self) -> None:
         self._table_view.clearSelection()
+
+    def _on_header_clicked(self, column: int) -> None:
+        self._sort_proxy.toggle_sort(column)
+
+    def _on_context_menu(self, pos) -> None:
+        index = self._table_view.indexAt(pos)
+        if not index.isValid():
+            return
+
+        source_idx = self._sort_proxy.mapToSource(index)
+        item = self._file_model.item(source_idx.row())
+        col = index.column()
+
+        menu = QMenu(self)
+
+        copy_original = menu.addAction("复制原名称")
+        copy_original.setEnabled(col in (1, 3))
+
+        copy_new = menu.addAction("复制新名称")
+        copy_new.setEnabled(col in (4,) and bool(item.preview_name))
+
+        copy_path = menu.addAction("复制完整路径")
+        copy_path.setEnabled(col in (3,))
+
+        action = menu.exec(self._table_view.viewport().mapToGlobal(pos))
+        if action == copy_original:
+            QApplication.clipboard().setText(item.original_name)
+        elif action == copy_new:
+            QApplication.clipboard().setText(item.preview_name or "")
+        elif action == copy_path:
+            QApplication.clipboard().setText(str(item.full_path))
