@@ -22,7 +22,7 @@ class TestScanPerformance:
             sub.mkdir()
             (sub / "b.txt").touch()
 
-            items = Scanner.scan(root)
+            items = Scanner.scan([root])
             names = {i.original_name for i in items}
             assert "b.txt" not in names
             assert len(items) == 2  # a.txt + sub
@@ -43,7 +43,7 @@ class TestScanPerformance:
                 return _real_stat(path, *args, **kwargs)
 
             with patch("os.stat", _counting_stat):
-                items = Scanner.scan(root)
+                items = Scanner.scan([root])
 
             # os.scandir 本身调用 stat，但 is_dir() 使用缓存不调用 stat
             # 每个文件 + 目录本身 + scandir 内部 = O(n) 而非 O(n²)
@@ -83,7 +83,7 @@ class TestScanPerformance:
                 (root / f"d{i}").mkdir()
 
             t0 = time.monotonic()
-            items = Scanner.scan(root)
+            items = Scanner.scan([root])
             elapsed = time.monotonic() - t0
 
             assert len(items) == 110
@@ -97,11 +97,11 @@ class TestScanPerformance:
                 (root / f"f{i}.txt").touch()
 
             t0 = time.monotonic()
-            Scanner.scan(root)
+            Scanner.scan([root])
             first = time.monotonic() - t0
 
             t0 = time.monotonic()
-            Scanner.scan(root)
+            Scanner.scan([root])
             second = time.monotonic() - t0
 
             # 第二次不应显著慢于第一次（允许 2x 容差）

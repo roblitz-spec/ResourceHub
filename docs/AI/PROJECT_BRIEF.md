@@ -10,16 +10,18 @@ To provide a safe, previewable, rule-based batch rename experience with full Uni
 
 ## Current Version
 
-**M15 RC** (Release Candidate)
+**M11.1** — Multiple Selection Support
 
 ## Completed Capabilities
 
-- **Scanner**: Non-recursive directory scan via `os.scandir()`
+- **Scanner**: Multi-path input (`scan(paths: list[Path])`), file + directory + mixed, non-recursive via `os.scandir()`
 - **Rule Engine**: 10 RuleStep types (replace, remove_text, regex_replace, case, trim, number, insert, date, add_prefix, add_suffix)
+- **Rule Analysis**: Rule dependency pre-analysis (`uses_index` / `uses_metadata`), context constructed on demand
 - **Preview Engine**: Real-time preview with context (index, metadata via MetadataProvider)
 - **RenamePlan Engine**: Unified plan generation + conflict detection + legality checks
 - **Rename Engine**: Policy-based execution (FAIL/SKIP/OVERWRITE)
 - **Undo Engine**: Single-level undo via OperationLogger
+- **Multi Selection**: ExtendedSelection in QTableView, batch rename with single Undo
 - **Rule Manager**: Full CRUD + RuleStep editor with type selection, parameter editing, ordering
 - **Settings**: QSettings-based RenamePolicy persistence
 - **i18n**: zh_CN / en_US via Qt Linguist .ts files
@@ -27,8 +29,8 @@ To provide a safe, previewable, rule-based batch rename experience with full Uni
 
 ## Current Stage
 
-Release Candidate validation. Feature freeze on all core modules.
+M11.1 Complete. Architecture stable.
 
 ## Next Stage
 
-M16 Planning.
+M12 Planning.

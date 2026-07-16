@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
         self._table_view.setModel(self._file_model)
         self._table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self._table_view.setSelectionBehavior(QTableView.SelectRows)
-        self._table_view.setSelectionMode(QAbstractItemView.SingleSelection)
+        self._table_view.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self._table_view.setEditTriggers(QTableView.NoEditTriggers)
         self._table_view.setAlternatingRowColors(True)
         self._table_view.verticalHeader().setVisible(False)
@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
         if _DEBUG:
             t1 = _utime()
 
-        self._scan_worker = ScanWorker(directory, self._current_rule())
+        self._scan_worker = ScanWorker([directory], self._current_rule())
 
         if _DEBUG:
             t2 = _utime()
@@ -293,8 +293,8 @@ class MainWindow(QMainWindow):
         if _DEBUG:
             t3 = _utime()
 
-        has_files = any(i.item_type == ItemType.FILE for i in items)
-        self._rename_btn.setEnabled(has_files)
+        has_items = len(items) > 0
+        self._rename_btn.setEnabled(has_items)
         self._browse_btn.setEnabled(True)
         self._refresh_btn.setEnabled(True)
 
@@ -366,14 +366,14 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "提示", "请先选择目录。")
             return
 
-        # 获取当前选中的文件
+        # 获取所有选中的资源
         sm = self._table_view.selectionModel()
         if sm is None or not sm.selectedRows():
             QMessageBox.information(self, "提示", "请先选择资源。")
             return
 
-        selected_row = sm.selectedRows()[0].row()
-        selected_items = [self._file_model.item(selected_row)]
+        selected_rows = sorted(r.row() for r in sm.selectedRows())
+        selected_items = [self._file_model.item(r) for r in selected_rows]
 
         # 生成 RenamePlan（含完整决策）
         policy = self._settings.get_rename_policy()
@@ -398,16 +398,16 @@ class MainWindow(QMainWindow):
         ready = [p for p in plans if p.action in (RenameAction.RENAME, RenameAction.OVERWRITE)]
         skipped_count = sum(1 for p in plans if p.action == RenameAction.SKIP)
         if not ready:
-            msg = "没有需要重命名的文件。"
+            msg = "没有需要重命名的资源。"
             if skipped_count:
-                msg = f"所有文件均已跳过（{skipped_count} 个）。"
+                msg = f"所有资源均已跳过（{skipped_count} 个）。"
             QMessageBox.information(self, "提示", msg)
             return
 
         overwrite_count = sum(1 for p in ready if p.action == RenameAction.OVERWRITE)
-        msg = f"即将重命名 {len(ready)} 个文件。"
+        msg = f"即将重命名 {len(ready)} 个资源。"
         if overwrite_count:
-            msg += f"\n其中 {overwrite_count} 个将覆盖已存在的文件。"
+            msg += f"\n其中 {overwrite_count} 个将覆盖已存在的资源。"
         msg += "\n\n是否继续？"
 
         reply = QMessageBox.question(
@@ -420,7 +420,7 @@ class MainWindow(QMainWindow):
         # 后台执行
         self._rename_btn.setEnabled(False)
 
-        progress = QProgressDialog("正在处理文件...", "", 0, len(plans), self)
+        progress = QProgressDialog("正在处理...", "", 0, len(plans), self)
         progress.setWindowTitle("正在重命名")
         progress.setCancelButton(None)
         progress.setWindowModality(Qt.WindowModal)
@@ -489,8 +489,7 @@ class MainWindow(QMainWindow):
 
     def _on_select_all(self) -> None:
         if self._file_model.rowCount() > 0:
-            idx = self._file_model.index(0, 0)
-            self._table_view.selectRow(0)
+            self._table_view.selectAll()
 
     def _on_deselect_all(self) -> None:
         self._table_view.clearSelection()

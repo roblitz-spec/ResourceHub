@@ -1,26 +1,41 @@
 # ResourceHub — Current Status
 
-**Version**: M15 RC
-**Date**: 2026-07-11
+**Version**: M11.1
+**Date**: 2026-07-15
 
 ## Test Status
 
 | Metric | Value |
 |---|---|
-| Automated Tests | **152 PASS** |
-| Regression Matrix | **PASS** (32 scenarios) |
+| Automated Tests | **176 PASS** |
+| Regression Matrix | **PASS** |
 | Unit + Integration | PASS |
 | Preview==Rename E2E | PASS |
 | Undo Cycle | PASS |
 | Boundary (Unicode/Long/Conflict) | PASS |
+| Multi-Select (File+Dir+Mixed) | PASS |
 
 ## Blocker
 
 **None.**
 
+## Project Status
+
+| Item | Status |
+|---|---|
+| Architecture | Stable |
+| Rename Pipeline | Stable |
+| Rule Dependency Analysis | Stable |
+| Scanner API | Stable (`scan(paths: list[Path])`) |
+| Multi File Selection | Supported |
+| Multi Directory Selection | Supported |
+| Mixed Selection | Supported |
+| Batch Rename | Supported |
+| Batch Undo | Supported |
+
 ## Manual QA
 
-PASS — Smoke tests cover: scan, preview, rename, undo, rule persistence.
+PASS — Smoke tests cover: scan, preview, rename (batch), undo, rule persistence.
 
 ## Feature Freeze
 
@@ -42,3 +57,4 @@ The following modules are frozen. Changes require explicit approval:
 | `M13-complete` | Insert Rule |
 | `M14-complete` | Date Rule |
 | `M15-complete` | AddSuffix Rule |
+| `M16-complete` | AI Memory v2.0 Governance |

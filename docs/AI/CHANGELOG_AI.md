@@ -2,6 +2,17 @@
 
 > For architecture decisions behind these changes, see [`DECISION_LOG.md`](DECISION_LOG.md).
 
+## M11.1
+- **Multiple Selection Support**: ExtendedSelection in QTableView, batch rename (file + directory + mixed)
+- **Scanner API**: `scan(paths: list[Path])` — multi-path input with deduplication
+- **Tests**: 176 PASS (+12 multi-select scenarios)
+
+## M10 Phase 3A
+- **Rule Dependency Analysis**: `RuleAnalysis` with `uses_index` / `uses_metadata`, PreviewEngine conditional context
+- **MetadataProvider**: Lazy `os.stat()` caching
+- **Documentation**: Architecture sync (timestamps → metadata, Directory unified pipeline)
+- **Tests**: 164 PASS (+11 RuleAnalysis tests)
+
 ## M15 RC
 - **AddSuffix Rule**: Independent `add_suffix` handler, no impact on `add_prefix`
 - **Undo Validation**: Target missing + double undo edge cases covered

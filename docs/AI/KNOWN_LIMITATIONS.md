@@ -30,8 +30,20 @@
 ## UI
 
 - **No Drag-and-Drop**: Step reordering uses ↑↓ buttons only.
-- **No Multi-Select in Table**: File list selection is single-row only.
 - **No Dark Mode**: UI uses system default theme.
+
+## Selection & Input
+
+- ✅ **Multi File Selection**: Supported (Ctrl+Click / Shift+Click in table).
+- ✅ **Multi Directory Selection**: Supported.
+- ✅ **File + Directory Mixed Selection**: Supported.
+- ✅ **Batch Rename + Undo**: Supported.
+
+The following are **design decisions** (not bugs) — future optional enhancements:
+
+- **No Drag-and-Drop Resource Input**: Resources are added via directory browse, not drag-and-drop.
+- **No Add Resources**: Cannot append additional resources to an existing scan result (requires re-scan).
+- **No Workspace / Favorites**: No persistent workspace or favorite-directory management.
 
 ## Serialization
 

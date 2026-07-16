@@ -24,7 +24,7 @@ class TestRenameE2E:
             (root / "A.txt").write_text("A")
             (root / "B.txt").write_text("B")
 
-            items = Scanner.scan(root)
+            items = Scanner.scan([root])
             assert len(items) == 2
 
             # 只选 A.txt (index 0)
@@ -55,7 +55,7 @@ class TestRenameE2E:
             (root / "A.txt").write_text("hello")
 
             # 扫描
-            items = Scanner.scan(root)
+            items = Scanner.scan([root])
             assert len(items) == 1
             assert items[0].original_name == "A.txt"
 
