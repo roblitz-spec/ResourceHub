@@ -101,3 +101,33 @@ PreviewEngine → RenamePlanEngine → RenameEngine → UndoEngine
 ```
 
 Scanner 是唯一负责资源聚合的模块。Pipeline 各层不区分资源的原始输入方式。多选、单选、单目录、多目录均通过**相同的 FileItem 列表**进入管道。
+
+## Network Filesystem Performance
+
+扫描相关代码必须考虑高延迟文件系统（SMB/NAS/WebDAV/FUSE/云盘挂载）。本地 SSD 测试不能作为唯一验证依据。
+
+### 扫描阶段
+
+| 禁止 | 原因 | 替代方案 |
+|---|---|---|
+| `Path.resolve()` | 调用 `realpath()` → 逐组件 `lstat()` → N 个网络 RTT | `Path(entry.path)` 直接使用 |
+| `Path.absolute()` | 额外 stat 确认 CWD | `os.scandir()` 已返回绝对路径 |
+| `Path.exists()` | 内部调用 `stat()` | 使用已有的 `DirEntry` 属性 |
+| `Path.stat()` 重复调用 | 每个调用 = 1 网络 RTT | 一次获取，缓存复用 |
+| `is_dir()` + `is_file()` 连续调用 | 两次 `stat()` 获取同一信息 | 单次 `stat()` + `S_ISDIR`/`S_ISREG` |
+
+### 优先方案
+
+1. **`os.scandir()`** — 单次 SMB2 FIND 请求返回目录下所有条目
+2. **`DirEntry.is_dir()`** — 使用 `d_type` 缓存属性（FindFirstFile on Windows），无需额外 stat
+3. **`DirEntry.name` / `DirEntry.path`** — 纯内存数据，零 I/O
+
+### 历史回归案例
+
+2026-07: Scanner 中 `Path.resolve()` 导致 NAS (SMB) 上 605 目录扫描耗时 252.524s。移除 `resolve()` 后降至 0.494s（≈511×）。详见 ADR-006。
+
+### 新增扫描逻辑检查清单
+
+- [ ] 对每个条目是否调用了 stat/exists/is_dir/is_file？（应通过 DirEntry 获取）
+- [ ] 是否调用了 resolve/realpath？（除非业务需要符号链接解析）
+- [ ] 是否在 SMB/NAS/FUSE 环境验证过？（不能仅测本地 SSD）

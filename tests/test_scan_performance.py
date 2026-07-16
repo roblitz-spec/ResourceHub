@@ -107,3 +107,19 @@ class TestScanPerformance:
             # 第二次不应显著慢于第一次（允许 2x 容差）
             assert second <= max(first * 2, 0.1), \
                 f"Second scan ({second:.4f}s) much slower than first ({first:.4f}s)"
+
+    def test_no_path_resolve_in_scan(self) -> None:
+        """Scanner.scan() 不得调用 Path.resolve()。
+
+        历史回归案例：Path.resolve() → realpath() → 每个路径组件 lstat()。
+        SMB/NAS 环境下 605 个目录从 252s 降至 0.5s（≈511×）。
+        此测试确保未来不会重新引入 resolve()。
+        """
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for i in range(5):
+                (root / f"file_{i}.txt").touch()
+
+            with patch.object(Path, "resolve", wraps=Path.resolve) as mock_resolve:
+                Scanner.scan([root])
+                mock_resolve.assert_not_called()
