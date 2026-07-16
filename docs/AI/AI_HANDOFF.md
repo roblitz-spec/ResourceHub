@@ -1,22 +1,22 @@
 # ResourceHub — AI Handoff
 
 > For new AI sessions. Read this first to restore context.
-> **AI Memory v1.0** — see `README_AI.md` for governance.
+> **AI Memory v2.0** — see `README_AI.md` for governance.
 
 ## Current State
 
 | Field | Value |
 |---|---|
-| Milestone | M15 RC |
-| Status | **GO** |
-| Tests | 152/152 PASS |
+| Milestone | M11.1 |
+| Status | **COMPLETED** ✅ |
+| Tests | 176/176 PASS |
 | Architecture | Stable |
 | Feature Freeze | Enabled |
 | Blocker | None |
 
 ## Next Action
 
-**M16 Planning** — see `NEXT_MILESTONE.md`
+**M12 Planning** — see `NEXT_MILESTONE.md`
 
 ## Key Files to Read
 

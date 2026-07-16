@@ -34,7 +34,7 @@ class TestScanWorker:
             sub.mkdir()
             (sub / "b.txt").touch()
 
-            items = Scanner.scan(root)
+            items = Scanner.scan([root])
             names = {i.original_name for i in items}
             assert "a.txt" in names
             assert "sub" in names
@@ -50,7 +50,7 @@ class TestScanWorker:
                 RuleStep(type="replace", parameters={"from": "_", "to": " "}),
             ])
 
-            worker = ScanWorker(root, rule)
+            worker = ScanWorker([root], rule)
             worker.start()
             worker.wait()
 
@@ -59,7 +59,7 @@ class TestScanWorker:
 
     def test_worker_handles_missing_dir(self, qapp: QApplication) -> None:
         """不存在的目录不崩溃。"""
-        worker = ScanWorker(Path("/nonexistent/path"))
+        worker = ScanWorker([Path("/nonexistent/path")])
         worker.start()
         worker.wait()
         assert worker.items == []

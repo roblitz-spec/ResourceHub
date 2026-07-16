@@ -26,7 +26,7 @@ _log._start = 0.0  # type: ignore[attr-defined]
 
 
 class ScanWorker(QThread):
-    """后台扫描线程 —— 在非 UI 线程执行目录扫描 + 预览生成。
+    """后台扫描线程 —— 在非 UI 线程执行扫描 + 预览生成。
 
     扫描结果同时存于 self.items，避免跨线程 Signal 序列化
     大量 FileItem 对象的开销。finished 信号仅携带空列表
@@ -37,12 +37,12 @@ class ScanWorker(QThread):
 
     def __init__(
         self,
-        directory: Path,
+        paths: list[Path],
         rule: Rule | None = None,
         parent: QThread | None = None,
     ) -> None:
         super().__init__(parent)
-        self._directory = directory
+        self._paths = paths
         self._rule = rule
         self.items: list[FileItem] = []
 
@@ -54,7 +54,7 @@ class ScanWorker(QThread):
         try:
             t1 = time.monotonic()
             _log("Scanner start")
-            items = Scanner.scan(self._directory)
+            items = Scanner.scan(self._paths)
             t2 = time.monotonic()
             dirs = sum(1 for i in items if i.item_type == ItemType.DIRECTORY)
             file_cnt = sum(1 for i in items if i.item_type == ItemType.FILE)

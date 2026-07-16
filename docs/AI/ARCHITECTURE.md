@@ -63,3 +63,41 @@ UndoEngine.undo(logger)
 3. 在 `PreviewEngine` 中根据新字段条件构造 context
 
 **不得修改 RuleEngine 或 handler 的 context 消费逻辑。**
+
+## Multiple Selection Support
+
+M11.1 引入多选支持。Scanner 是唯一资源聚合入口，Rename Pipeline 完全不变。
+
+### Scanner API
+
+```python
+Scanner.scan(paths: list[Path]) → list[FileItem]
+```
+
+| 输入类型 | 处理方式 |
+|---|---|
+| 目录 | `os.scandir()` 扫描直接子项 |
+| 文件 | 直接构造 `FileItem` |
+| 混合 | 合并为统一列表，自动去重 |
+
+输出顺序：目录在前，文件在后（按名称排序）。
+
+### Resource Aggregation
+
+```
+  [Path, Path, ...]
+        │
+   Scanner.scan()
+        │
+   list[FileItem]     ← 统一资源列表
+        │
+   Preview Pipeline   ← 完全不变
+```
+
+### Pipeline (Unchanged)
+
+```
+PreviewEngine → RenamePlanEngine → RenameEngine → UndoEngine
+```
+
+Scanner 是唯一负责资源聚合的模块。Pipeline 各层不区分资源的原始输入方式。多选、单选、单目录、多目录均通过**相同的 FileItem 列表**进入管道。
