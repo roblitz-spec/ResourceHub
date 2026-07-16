@@ -14,6 +14,16 @@ README_AI.md  →  AI_MEMORY_PACK.md  →  start working
 
 Alternative: read all 12 source documents in order.
 
+## Key Knowledge Documents
+
+In addition to the AI Memory system (`docs/AI/`), the project maintains a knowledge base for engineering topics:
+
+- **`docs/knowledge/README.md`** — Knowledge base index. Start here to find topic-specific documents.
+- **`AI_MEMORY_PACK.md`** — Default entry point for AI sessions. Regenerated from `docs/AI/` source files. Read this first.
+- **Individual knowledge documents** — Read when investigating a specific issue (e.g., `windows_case_only_rename.md` for Windows rename bugs, `refresh_after_rename.md` for post-rename data flow).
+
+The knowledge base complements AI Memory: Memory covers architecture, status, and decisions; Knowledge covers investigation history, lessons learned, and platform-specific behavior.
+
 ## Governance
 
 The AI Memory System defines the project's long-term knowledge.
