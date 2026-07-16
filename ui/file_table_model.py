@@ -5,7 +5,7 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QSortFilterProxyModel, Qt
 
 from models.enums import ItemType
 from models.file_item import FileItem
@@ -34,6 +34,40 @@ _ROLE_NAMES: dict[int, str] = {
     Qt.SizeHintRole: "SizeHintRole",
     Qt.UserRole: "UserRole",
 }
+
+
+class SortProxyModel(QSortFilterProxyModel):
+    """支持 3 态排序：升序 → 降序 → 默认顺序。"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._sort_column = -1
+        self._sort_state = 0  # 0=default, 1=asc, 2=desc
+
+    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
+        """大小写不敏感排序。"""
+        lv = left.data(Qt.DisplayRole) or ""
+        rv = right.data(Qt.DisplayRole) or ""
+        return str(lv).lower() < str(rv).lower()
+
+    def toggle_sort(self, column: int) -> None:
+        """3 态循环：default → asc → desc → default。"""
+        if column != self._sort_column:
+            self._sort_column = column
+            self._sort_state = 1  # asc
+        else:
+            self._sort_state = (self._sort_state + 1) % 3  # 0→1→2→0
+
+        if self._sort_state == 0:
+            self.sort(-1, Qt.AscendingOrder)  # restore default
+            self._sort_column = -1
+        else:
+            order = Qt.AscendingOrder if self._sort_state == 1 else Qt.DescendingOrder
+            self.sort(column, order)
+
+    @property
+    def is_sorted(self) -> bool:
+        return self._sort_state != 0
 
 
 class FileTableModel(QAbstractTableModel):
